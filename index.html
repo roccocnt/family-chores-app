@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Family Home App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="topbar">
+      <div>
+        <h1 id="groupName">Corso Montevecchio 66</h1>
+        <p class="subtitle">Gestione faccende di casa</p>
+      </div>
+      <div class="current-user">
+        <span id="currentUserAvatar" class="avatar">🙂</span>
+        <span id="currentUserName" class="user-name">Nessun utente</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- Sezione: scelta gruppo / utente -->
+      <section class="card">
+        <h2>Impostazioni iniziali</h2>
+        <div class="field-row">
+          <label for="groupInput">Nome gruppo</label>
+          <input id="groupInput" type="text" placeholder="Es. Famiglia, Coinquilini..." />
+          <button id="saveGroupBtn">Salva gruppo</button>
+        </div>
+
+        <div class="field-row">
+          <label for="userFirstName">Nome</label>
+          <input id="userFirstName" type="text" placeholder="Es. Mario" />
+        </div>
+        <div class="field-row">
+          <label for="userLastName">Cognome</label>
+          <input id="userLastName" type="text" placeholder="Es. Rossi" />
+        </div>
+        <div class="field-row">
+          <label for="userAvatar">Emoji avatar</label>
+          <input id="userAvatar" type="text" placeholder="Es. 😎, 🐱, 🌸" maxlength="2" />
+        </div>
+        <button id="saveUserBtn" class="primary-btn">Imposta utente su questo dispositivo</button>
+        <p class="note">
+          Per ora l'utente è salvato solo su questo telefono. Poi lo sincronizzeremo tra tutti.
+        </p>
+      </section>
+
+      <!-- Prenotazioni: lavatrice / stendini / doccia -->
+      <section class="card">
+        <h2>Prenotazioni rapide</h2>
+        <div class="bookings">
+          <div class="booking-item">
+            <h3>Lavatrice</h3>
+            <p id="washingInfo" class="booking-info">Nessuno ha prenotato</p>
+            <button data-type="washing" class="book-btn">Prenota per me</button>
+            <button data-type="washing" class="clear-booking-btn">Libera</button>
+          </div>
+          <div class="booking-item">
+            <h3>Stendino 1</h3>
+            <p id="rack1Info" class="booking-info">Nessuno ha prenotato</p>
+            <button data-type="rack1" class="book-btn">Prenota per me</button>
+            <button data-type="rack1" class="clear-booking-btn">Libera</button>
+          </div>
+          <div class="booking-item">
+            <h3>Stendino 2</h3>
+            <p id="rack2Info" class="booking-info">Nessuno ha prenotato</p>
+            <button data-type="rack2" class="book-btn">Prenota per me</button>
+            <button data-type="rack2" class="clear-booking-btn">Libera</button>
+          </div>
+          <div class="booking-item">
+            <h3>Doccia</h3>
+            <p id="showerInfo" class="booking-info">Nessuno ha prenotato</p>
+            <button data-type="shower" class="book-btn">Prenota per me</button>
+            <button data-type="shower" class="clear-booking-btn">Libera</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lista della spesa -->
+      <section class="card">
+        <h2>Lista della spesa</h2>
+        <form id="shoppingForm" class="inline-form">
+          <input id="shoppingInput" type="text" placeholder="Aggiungi elemento..." required />
+          <button type="submit" class="primary-btn">+</button>
+        </form>
+        <ul id="shoppingList" class="shopping-list"></ul>
+      </section>
+
+      <!-- Lavagna messaggi -->
+      <section class="card">
+        <h2>Lavagna di casa</h2>
+        <form id="boardForm">
+          <textarea id="boardInput" rows="2" placeholder="Scrivi un pensiero o comunicazione..."></textarea>
+          <button type="submit" class="primary-btn">Pubblica</button>
+        </form>
+        <ul id="boardMessages" class="board-list"></ul>
+      </section>
+
+      <!-- Prenotazione pulizie -->
+      <section class="card">
+        <h2>Pulizie settimanali</h2>
+        <p class="note">Per ora è una selezione locale; poi la colleghiamo alla settimana e la condividiamo.</p>
+        <div class="cleaning-grid">
+          <label class="cleaning-item">
+            <input type="checkbox" data-zone="cucina" />
+            <span>Cucina</span>
+          </label>
+          <label class="cleaning-item">
+            <input type="checkbox" data-zone="sala" />
+            <span>Sala</span>
+          </label>
+          <label class="cleaning-item">
+            <input type="checkbox" data-zone="bagno_piccolo" />
+            <span>Bagno piccolo</span>
+          </label>
+          <label class="cleaning-item">
+            <input type="checkbox" data-zone="bagno_grande" />
+            <span>Bagno grande</span>
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Tip: usa “Aggiungi alla schermata Home” per trasformarla in app 😊</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
