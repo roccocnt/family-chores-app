@@ -1,7 +1,32 @@
 // Stato globale salvato in localStorage (solo su questo dispositivo)
-const STORAGE_KEY = "montevecchio66_app_v3";
+const STORAGE_KEY = "montevecchio66_app_v4";
 const MS_HOUR = 60 * 60 * 1000;
 const MS_90_MIN = 90 * 60 * 1000;
+
+// Elementi predefiniti della lista spesa
+const DEFAULT_SHOPPING_ITEMS = [
+  "Sale",
+  "Zucchero",
+  "Fazzoletti",
+  "Scottex",
+  "Carta igienica",
+  "Acqua",
+  "Sgrassatore",
+  "Spugnette piatti",
+  "Svelto",
+  "Igienizzante bagno",
+  "Detersivo pavimenti",
+  "Pellicola alimenti",
+  "Carta stagnola",
+  "Carta forno",
+  "Sacchetti organico",
+  "Sapone mani",
+  "Sacchi plastica",
+  "Mr Muscolo",
+  "Candeggina",
+];
+
+const CLEANING_ZONES = ["bagno_piccolo", "bagno_grande", "sala", "cucina"];
 
 let state = {
   user: {
@@ -13,14 +38,22 @@ let state = {
     name: "Corso Montevecchio 66",
     laundryReservations: [], // max 2
     showerBookings: [], // lista docce (mostriamo sempre le 5 più vicine)
-    shopping: [],
-    board: [],
-    cleaning: {
-      cucina: false,
-      sala: false,
-      bagno_piccolo: false,
-      bagno_grande: false,
+    shopping: [], // legacy (non usato più)
+    shoppingChecklist: [], // nuova checklist
+    board: [], // array di messaggi; usiamo solo il primo per la lavagna
+    cleaningAssignments: {
+      bagno_piccolo: null,
+      bagno_grande: null,
+      sala: null,
+      cucina: null,
     },
+    cleaningHistory: {
+      bagno_piccolo: [],
+      bagno_grande: [],
+      sala: [],
+      cucina: [],
+    },
+    cleaningWeekKey: null,
   },
 };
 
@@ -35,6 +68,7 @@ function loadState() {
     if (raw) {
       const parsed = JSON.parse(raw);
       const pg = parsed.group || {};
+
       state = {
         ...state,
         ...parsed,
@@ -42,14 +76,26 @@ function loadState() {
         group: {
           ...state.group,
           ...pg,
-          cleaning: {
-            ...state.group.cleaning,
-            ...(pg.cleaning || {}),
-          },
           laundryReservations: pg.laundryReservations || [],
           showerBookings: pg.showerBookings || [],
           shopping: pg.shopping || [],
+          shoppingChecklist: pg.shoppingChecklist || [],
           board: pg.board || [],
+          cleaningAssignments: {
+            bagno_piccolo: null,
+            bagno_grande: null,
+            sala: null,
+            cucina: null,
+            ...(pg.cleaningAssignments || {}),
+          },
+          cleaningHistory: {
+            bagno_piccolo: [],
+            bagno_grande: [],
+            sala: [],
+            cucina: [],
+            ...(pg.cleaningHistory || {}),
+          },
+          cleaningWeekKey: pg.cleaningWeekKey || null,
         },
       };
     }
@@ -57,8 +103,18 @@ function loadState() {
     console.error("Errore caricando lo stato:", e);
   }
 
+  // Inizializza la checklist se vuota
+  if (!state.group.shoppingChecklist || state.group.shoppingChecklist.length === 0) {
+    state.group.shoppingChecklist = DEFAULT_SHOPPING_ITEMS.map((label, idx) => ({
+      id: "pre-" + idx,
+      label,
+      checked: false,
+    }));
+  }
+
   cleanupLaundryReservations();
   cleanupShowerBookings();
+  resetCleaningWeekIfNeeded();
   saveState();
 }
 
@@ -148,6 +204,7 @@ function showMainSection(section) {
 
   if (section === "home" && homeEl) {
     homeEl.style.display = "flex";
+    renderHomeBlackboard();
   } else if (section === "laundry" && laundryEl) {
     laundryEl.style.display = "flex";
     renderLaundryScreen();
@@ -156,11 +213,11 @@ function showMainSection(section) {
     renderShowerScreen();
   } else if (section === "cleaning" && cleaningEl) {
     cleaningEl.style.display = "flex";
+    resetCleaningWeekIfNeeded();
     renderCleaning();
   } else if (section === "shopping" && shoppingEl) {
     shoppingEl.style.display = "flex";
     renderShopping();
-    renderBoard();
   } else if (section === "profile" && profileEl) {
     profileEl.style.display = "flex";
     renderProfileScreen();
@@ -181,7 +238,7 @@ function formatDateTimeShort(iso) {
   return `${day} alle ${time}`;
 }
 
-// Crea un avatar piccolo per l'utente corrente
+// Avatar piccolo per l'utente corrente (prenotazioni lavatrice/doccia)
 function createUserSmallAvatar() {
   const div = document.createElement("div");
   div.className = "small-avatar";
@@ -192,6 +249,28 @@ function createUserSmallAvatar() {
     const initials =
       state.user.firstName && state.user.lastName
         ? (state.user.firstName[0] + state.user.lastName[0]).toUpperCase()
+        : "🙂";
+    div.textContent = initials;
+  }
+  return div;
+}
+
+// Avatar generico da dati + nome (storico pulizie)
+function createSmallAvatarFromData(photoData, name) {
+  const div = document.createElement("div");
+  div.className = "history-avatar";
+  if (photoData) {
+    div.style.backgroundImage = `url(data:image/jpeg;base64,${photoData})`;
+    div.textContent = "";
+  } else {
+    const initials =
+      name && name.trim().length >= 1
+        ? name
+            .split(" ")
+            .filter(Boolean)
+            .map((p) => p[0])
+            .join("")
+            .toUpperCase()
         : "🙂";
     div.textContent = initials;
   }
@@ -226,7 +305,6 @@ function intervalsOverlap(s1, e1, s2, e2) {
 
 function recomputeShowerConflicts() {
   const list = state.group.showerBookings || [];
-  // reset
   list.forEach((b) => (b.hasConflict = false));
   for (let i = 0; i < list.length; i++) {
     const bi = list[i];
@@ -242,6 +320,43 @@ function recomputeShowerConflicts() {
       }
     }
   }
+}
+
+// ---------- Settimana per le pulizie ----------
+function getCurrentWeekKey() {
+  const now = new Date();
+  // Approssimazione settimana ISO (lunedì come inizio)
+  const day = now.getDay(); // 0=dom, 1=lun
+  const diffToMonday = (day + 6) % 7;
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(now.getDate() - diffToMonday);
+
+  const year = monday.getFullYear();
+  const oneJan = new Date(year, 0, 1);
+  const week = Math.ceil(((monday - oneJan) / 86400000 + oneJan.getDay() + 1) / 7);
+
+  return `${year}-W${week}`;
+}
+
+function resetCleaningWeekIfNeeded() {
+  const currentKey = getCurrentWeekKey();
+  if (state.group.cleaningWeekKey && state.group.cleaningWeekKey !== currentKey) {
+    // Salva nel nuovo storico e svuota assegnazioni
+    CLEANING_ZONES.forEach((zone) => {
+      const ass = state.group.cleaningAssignments[zone];
+      if (ass) {
+        if (!state.group.cleaningHistory[zone]) state.group.cleaningHistory[zone] = [];
+        state.group.cleaningHistory[zone].unshift({
+          userName: ass.userName,
+          photoData: ass.photoData,
+          timestamp: ass.timestamp,
+        });
+      }
+      state.group.cleaningAssignments[zone] = null;
+    });
+  }
+  state.group.cleaningWeekKey = currentKey;
 }
 
 // ---------- Render: LOGIN ----------
@@ -435,73 +550,93 @@ function renderShowerScreen() {
   }
 }
 
-// ---------- Render: SPESA / LAVAGNA / PULIZIE ----------
+// ---------- Render: LAVAGNA HOME ----------
+function renderHomeBlackboard() {
+  const textEl = document.getElementById("homeBlackboardText");
+  const authorEl = document.getElementById("homeBlackboardAuthor");
+  if (!textEl || !authorEl) return;
+
+  const msg = state.group.board && state.group.board[0];
+
+  if (!msg) {
+    textEl.textContent = "Tocca per scrivere un pensiero di casa";
+    textEl.classList.add("blackboard-placeholder");
+    authorEl.textContent = "";
+  } else {
+    textEl.textContent = `"${msg.text}"`;
+    textEl.classList.remove("blackboard-placeholder");
+    authorEl.textContent = `— ${msg.author}`;
+  }
+}
+
+// ---------- Render: LISTA SPESA ----------
 function renderShopping() {
   const listEl = document.getElementById("shoppingList");
   if (!listEl) return;
   listEl.innerHTML = "";
 
-  state.group.shopping.forEach((item, index) => {
+  const items = state.group.shoppingChecklist || [];
+  items.forEach((item) => {
     const li = document.createElement("li");
 
-    const top = document.createElement("div");
-    top.style.display = "flex";
-    top.style.flexDirection = "column";
+    const label = document.createElement("label");
+    label.style.display = "flex";
+    label.style.alignItems = "center";
+    label.style.gap = "8px";
+    label.style.width = "100%";
 
-    const span = document.createElement("span");
-    span.textContent = item.text;
-
-    const meta = document.createElement("small");
-    meta.textContent = item.addedBy || "";
-    meta.style.fontSize = "0.7rem";
-    meta.style.color = "#666";
-
-    top.appendChild(span);
-    if (item.addedBy) top.appendChild(meta);
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "X";
-    deleteBtn.addEventListener("click", () => {
-      state.group.shopping.splice(index, 1);
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !!item.checked;
+    cb.addEventListener("change", () => {
+      item.checked = cb.checked;
       saveState();
-      renderShopping();
     });
 
-    li.appendChild(top);
-    li.appendChild(deleteBtn);
+    const span = document.createElement("span");
+    span.textContent = item.label;
+
+    label.appendChild(cb);
+    label.appendChild(span);
+    li.appendChild(label);
     listEl.appendChild(li);
   });
 }
 
-function renderBoard() {
-  const listEl = document.getElementById("boardMessages");
-  if (!listEl) return;
-  listEl.innerHTML = "";
-
-  state.group.board.forEach((msg) => {
-    const li = document.createElement("li");
-    li.className = "board-item";
-
-    const meta = document.createElement("div");
-    meta.className = "board-meta";
-    meta.textContent = `${msg.author} - ${msg.date}`;
-
-    const text = document.createElement("div");
-    text.textContent = msg.text;
-
-    li.appendChild(meta);
-    li.appendChild(text);
-    listEl.appendChild(li);
-  });
-}
-
+// ---------- Render: PULIZIE ----------
 function renderCleaning() {
-  const checkboxes = document.querySelectorAll(
-    ".cleaning-item input[type='checkbox']"
-  );
-  checkboxes.forEach((cb) => {
-    const zone = cb.dataset.zone;
-    cb.checked = !!state.group.cleaning[zone];
+  // Assegnazioni attuali
+  CLEANING_ZONES.forEach((zone) => {
+    const ass = state.group.cleaningAssignments[zone];
+    const assEl = document.getElementById("cleaning-assignee-" + zone);
+    if (!assEl) return;
+
+    assEl.innerHTML = "";
+
+    if (!ass) {
+      assEl.textContent = "Libero";
+      assEl.style.color = "#777";
+    } else {
+      assEl.style.color = "#000";
+      const avatar = createSmallAvatarFromData(ass.photoData, ass.userName);
+      avatar.className = "small-avatar"; // ingrandiamo un po' per l'assegnato
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = ass.userName;
+      assEl.appendChild(avatar);
+      assEl.appendChild(nameSpan);
+    }
+  });
+
+  // Storico
+  CLEANING_ZONES.forEach((zone) => {
+    const container = document.getElementById("history-" + zone);
+    if (!container) return;
+    container.innerHTML = "";
+    const history = state.group.cleaningHistory[zone] || [];
+    history.forEach((h) => {
+      const avatar = createSmallAvatarFromData(h.photoData, h.userName);
+      container.appendChild(avatar);
+    });
   });
 }
 
@@ -655,6 +790,7 @@ function setupProfileEvents() {
         renderHeader();
         renderLaundryScreen();
         renderShowerScreen();
+        renderCleaning();
         cameraPanel.classList.add("hidden");
         if (cameraStream) {
           cameraStream.getTracks().forEach((t) => t.stop());
@@ -680,6 +816,7 @@ function setupProfileEvents() {
         renderHeader();
         renderLaundryScreen();
         renderShowerScreen();
+        renderCleaning();
       } catch (e) {
         console.error(e);
         alert("Errore nel caricare la foto dalla galleria.");
@@ -770,7 +907,6 @@ function setupMainEvents() {
       const list = state.group.laundryReservations || [];
 
       if (list.length >= 2) {
-        // Non ci sono stendini liberi
         const sorted = list
           .slice()
           .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
@@ -784,7 +920,6 @@ function setupMainEvents() {
         return;
       }
 
-      // Assegna stendino
       let rackLabel = "Stendino 1";
       if (list.length === 1) {
         rackLabel = list[0].rackLabel === "Stendino 1" ? "Stendino 2" : "Stendino 2";
@@ -870,7 +1005,6 @@ function setupMainEvents() {
         return;
       }
 
-      // Conflitto: chiedi conferma
       pendingShowerBooking = {
         startTimeIso: start.toISOString(),
       };
@@ -900,33 +1034,96 @@ function setupMainEvents() {
     });
   }
 
-  // SPESA
-  const shoppingForm = document.getElementById("shoppingForm");
-  const shoppingInput = document.getElementById("shoppingInput");
-  if (shoppingForm && shoppingInput) {
-    shoppingForm.addEventListener("submit", (e) => {
+  // LISTA SPESA - aggiunta elementi
+  const shoppingAddForm = document.getElementById("shoppingAddForm");
+  const shoppingAddInput = document.getElementById("shoppingAddInput");
+  if (shoppingAddForm && shoppingAddInput) {
+    shoppingAddForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      const text = shoppingInput.value.trim();
+      const text = shoppingAddInput.value.trim();
       if (!text) return;
-      state.group.shopping.push({
-        text,
-        addedBy: getUserFullName(),
+      if (!state.group.shoppingChecklist) state.group.shoppingChecklist = [];
+      state.group.shoppingChecklist.push({
+        id: Date.now().toString(),
+        label: text,
+        checked: false,
       });
-      shoppingInput.value = "";
+      shoppingAddInput.value = "";
       saveState();
       renderShopping();
     });
   }
 
-  // LAVAGNA
-  const boardForm = document.getElementById("boardForm");
-  const boardInput = document.getElementById("boardInput");
-  if (boardForm && boardInput) {
-    boardForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const text = boardInput.value.trim();
-      if (!text) return;
+  // PULIZIE - click sulle zone
+  document.querySelectorAll(".cleaning-zone-row").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const zone = btn.dataset.zone;
+      if (!zone) return;
+      resetCleaningWeekIfNeeded();
 
+      const ass = state.group.cleaningAssignments[zone];
+      const myName = getUserFullName();
+      const myPhoto = state.user.photoData;
+
+      if (!ass) {
+        state.group.cleaningAssignments[zone] = {
+          userName: myName,
+          photoData: myPhoto,
+          timestamp: new Date().toISOString(),
+        };
+        saveState();
+        renderCleaning();
+        return;
+      }
+
+      if (ass.userName === myName) {
+        alert("Hai già preso in carico questa zona per questa settimana.");
+        return;
+      }
+
+      const ok = confirm(
+        `Questa zona è già presa in carico da ${ass.userName}.\nVuoi assegnarla a te?`
+      );
+      if (!ok) return;
+
+      state.group.cleaningAssignments[zone] = {
+        userName: myName,
+        photoData: myPhoto,
+        timestamp: new Date().toISOString(),
+      };
+      saveState();
+      renderCleaning();
+    });
+  });
+
+  // LAVAGNA di casa - click e dialogo
+  const blackboardEl = document.getElementById("homeBlackboard");
+  const blackboardDialog = document.getElementById("blackboardDialog");
+  const blackboardInput = document.getElementById("blackboardInput");
+  const blackboardCancelBtn = document.getElementById("blackboardCancelBtn");
+  const blackboardSaveBtn = document.getElementById("blackboardSaveBtn");
+
+  if (blackboardEl && blackboardDialog && blackboardInput) {
+    blackboardEl.addEventListener("click", () => {
+      const msg = state.group.board && state.group.board[0];
+      blackboardInput.value = msg ? msg.text : "";
+      blackboardDialog.classList.remove("hidden");
+    });
+  }
+
+  if (blackboardCancelBtn && blackboardDialog) {
+    blackboardCancelBtn.addEventListener("click", () => {
+      blackboardDialog.classList.add("hidden");
+    });
+  }
+
+  if (blackboardSaveBtn && blackboardDialog && blackboardInput) {
+    blackboardSaveBtn.addEventListener("click", () => {
+      const text = blackboardInput.value.trim();
+      if (!text) {
+        alert("Scrivi qualcosa prima di salvare.");
+        return;
+      }
       const now = new Date();
       const dateStr = now.toLocaleString("it-IT", {
         day: "2-digit",
@@ -934,29 +1131,18 @@ function setupMainEvents() {
         hour: "2-digit",
         minute: "2-digit",
       });
-
-      state.group.board.unshift({
+      const msg = {
         text,
         author: getUserFullName(),
         date: dateStr,
-      });
-      boardInput.value = "";
+      };
+      if (!state.group.board) state.group.board = [];
+      state.group.board.unshift(msg);
       saveState();
-      renderBoard();
+      blackboardDialog.classList.add("hidden");
+      renderHomeBlackboard();
     });
   }
-
-  // PULIZIE
-  const cleaningCheckboxes = document.querySelectorAll(
-    ".cleaning-item input[type='checkbox']"
-  );
-  cleaningCheckboxes.forEach((cb) => {
-    cb.addEventListener("change", () => {
-      const zone = cb.dataset.zone;
-      state.group.cleaning[zone] = cb.checked;
-      saveState();
-    });
-  });
 }
 
 // ---------- Init ----------
