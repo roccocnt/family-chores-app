@@ -1,7 +1,6 @@
-// Chiave usata in localStorage
+// Versione locale: tutto salvato SOLO su questo dispositivo, via localStorage
 const STORAGE_KEY = "family_home_app_v1";
 
-// Stato locale (per ora solo su questo dispositivo)
 let state = {
   groupName: "Famiglia",
   currentUser: {
@@ -25,6 +24,7 @@ let state = {
   },
 };
 
+// ----- localStorage -----
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -32,7 +32,7 @@ function loadState() {
       state = JSON.parse(raw);
     }
   } catch (e) {
-    console.error("Errore nel parsing dello stato", e);
+    console.error("Errore caricando lo stato:", e);
   }
 }
 
@@ -40,29 +40,31 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-// Helper: nome completo utente
 function getCurrentUserFullName() {
   const { firstName, lastName } = state.currentUser;
   const full = `${firstName || ""} ${lastName || ""}`.trim();
   return full || "Utente anonimo";
 }
 
-// ---- Rendering UI ----
+// ----- Render UI -----
 function renderHeader() {
   document.getElementById("groupName").textContent =
     "Gruppo: " + (state.groupName || "Famiglia");
+
   document.getElementById("currentUserName").textContent =
     getCurrentUserFullName();
-  document.getElementById("currentUserAvatar").textContent =
-    state.currentUser.avatar || "🙂";
+
+  const avatarEl = document.getElementById("currentUserAvatar");
+  avatarEl.textContent = state.currentUser.avatar || "🙂";
+  avatarEl.style.backgroundImage = "none";
 }
 
 function renderBookings() {
   const mappings = [
-    { key: "washing", elId: "washingInfo", label: "Lavatrice" },
-    { key: "rack1", elId: "rack1Info", label: "Stendino 1" },
-    { key: "rack2", elId: "rack2Info", label: "Stendino 2" },
-    { key: "shower", elId: "showerInfo", label: "Doccia" },
+    { key: "washing", elId: "washingInfo" },
+    { key: "rack1", elId: "rack1Info" },
+    { key: "rack2", elId: "rack2Info" },
+    { key: "shower", elId: "showerInfo" },
   ];
 
   mappings.forEach(({ key, elId }) => {
@@ -83,20 +85,20 @@ function renderShopping() {
   state.shopping.forEach((item, index) => {
     const li = document.createElement("li");
 
+    const top = document.createElement("div");
+    top.style.display = "flex";
+    top.style.flexDirection = "column";
+
     const span = document.createElement("span");
     span.textContent = item.text;
 
     const meta = document.createElement("small");
     meta.textContent = item.addedBy || "";
-    meta.style.marginLeft = "8px";
     meta.style.fontSize = "0.7rem";
     meta.style.color = "#666";
 
-    const leftBox = document.createElement("div");
-    leftBox.style.display = "flex";
-    leftBox.style.flexDirection = "column";
-    leftBox.appendChild(span);
-    if (item.addedBy) leftBox.appendChild(meta);
+    top.appendChild(span);
+    if (item.addedBy) top.appendChild(meta);
 
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "X";
@@ -106,7 +108,7 @@ function renderShopping() {
       renderShopping();
     });
 
-    li.appendChild(leftBox);
+    li.appendChild(top);
     li.appendChild(deleteBtn);
     listEl.appendChild(li);
   });
@@ -134,7 +136,9 @@ function renderBoard() {
 }
 
 function renderCleaning() {
-  const checkboxes = document.querySelectorAll(".cleaning-item input[type='checkbox']");
+  const checkboxes = document.querySelectorAll(
+    ".cleaning-item input[type='checkbox']"
+  );
   checkboxes.forEach((cb) => {
     const zone = cb.dataset.zone;
     cb.checked = !!state.cleaning[zone];
@@ -149,9 +153,18 @@ function renderAll() {
   renderCleaning();
 }
 
-// ---- Event handlers ----
+// ----- Eventi -----
 function setupEvents() {
-  // Salva gruppo
+  // Precarica i campi con lo stato salvato
+  document.getElementById("groupInput").value = state.groupName || "";
+  document.getElementById("userFirstName").value =
+    state.currentUser.firstName || "";
+  document.getElementById("userLastName").value =
+    state.currentUser.lastName || "";
+  document.getElementById("userAvatar").value =
+    state.currentUser.avatar || "🙂";
+
+  // Salvataggio gruppo
   document.getElementById("saveGroupBtn").addEventListener("click", () => {
     const input = document.getElementById("groupInput");
     state.groupName = input.value.trim() || "Famiglia";
@@ -159,15 +172,17 @@ function setupEvents() {
     renderHeader();
   });
 
-  // Salva utente
+  // Salvataggio utente
   document.getElementById("saveUserBtn").addEventListener("click", () => {
     const firstName = document.getElementById("userFirstName").value.trim();
     const lastName = document.getElementById("userLastName").value.trim();
     let avatar = document.getElementById("userAvatar").value.trim();
     if (!avatar) avatar = "🙂";
+
     state.currentUser = { firstName, lastName, avatar };
     saveState();
     renderHeader();
+    alert("Utente impostato su questo dispositivo!");
   });
 
   // Prenotazioni
@@ -176,13 +191,14 @@ function setupEvents() {
       const type = btn.dataset.type;
       state.bookings[type] = {
         userName: getCurrentUserFullName(),
+        avatar: state.currentUser.avatar,
+        time: new Date().toISOString(),
       };
       saveState();
       renderBookings();
     });
   });
 
-  // Libera prenotazione
   document.querySelectorAll(".clear-booking-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.type;
@@ -199,6 +215,7 @@ function setupEvents() {
     e.preventDefault();
     const text = shoppingInput.value.trim();
     if (!text) return;
+
     state.shopping.push({
       text,
       addedBy: getCurrentUserFullName(),
@@ -215,6 +232,7 @@ function setupEvents() {
     e.preventDefault();
     const text = boardInput.value.trim();
     if (!text) return;
+
     const now = new Date();
     const dateStr = now.toLocaleString("it-IT", {
       day: "2-digit",
@@ -222,6 +240,7 @@ function setupEvents() {
       hour: "2-digit",
       minute: "2-digit",
     });
+
     state.board.unshift({
       text,
       author: getCurrentUserFullName(),
@@ -245,15 +264,9 @@ function setupEvents() {
   });
 }
 
-// ---- Init ----
+// ----- Init -----
 loadState();
 window.addEventListener("DOMContentLoaded", () => {
-  // Pre-carica i campi di testo con i valori salvati (opzionale)
-  document.getElementById("groupInput").value = state.groupName || "";
-  document.getElementById("userFirstName").value = state.currentUser.firstName || "";
-  document.getElementById("userLastName").value = state.currentUser.lastName || "";
-  document.getElementById("userAvatar").value = state.currentUser.avatar || "🙂";
-
   setupEvents();
   renderAll();
 });
