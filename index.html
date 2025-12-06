@@ -139,33 +139,6 @@
     </footer>
   </div>
 
-  <script src="app.js" type="module"></script>
-</body>
-</html>
-
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-    // ⬇️ la tua config qui
-    const firebaseConfig = {
-      apiKey: "API_KEY",
-      authDomain: ".....firebaseapp.com",
-      projectId: ".....",
-      storageBucket: ".....appspot.com",
-      messagingSenderId: ".....",
-      appId: "....."
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // Esponiamo solo app e db
-    window._firebase = { app, db };
-  </script>
-
-  <script src="app.js" type="module"></script>
-
+  <script src="app.js"></script>
 </body>
 </html>
