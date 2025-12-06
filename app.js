@@ -1,15 +1,13 @@
-// App locale: tutti i dati salvati SOLO su questo dispositivo (localStorage)
-// Nessun backend, niente costi, niente billing.
+// Chiave usata in localStorage
+const STORAGE_KEY = "family_home_app_v1";
 
-const STORAGE_KEY = "family_home_app_local_v2";
-
+// Stato locale (per ora solo su questo dispositivo)
 let state = {
   groupName: "Famiglia",
   currentUser: {
     firstName: "",
     lastName: "",
     avatar: "🙂",
-    photoData: null, // Base64 della foto (thumbnail)
   },
   bookings: {
     washing: null,
@@ -27,7 +25,6 @@ let state = {
   },
 };
 
-// ------- Helpers localStorage -------
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -43,67 +40,29 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+// Helper: nome completo utente
 function getCurrentUserFullName() {
   const { firstName, lastName } = state.currentUser;
   const full = `${firstName || ""} ${lastName || ""}`.trim();
   return full || "Utente anonimo";
 }
 
-// ------- Foto: riduci e converti in Base64 -------
-function readImageFileAsBase64Thumbnail(file, maxSize = 128) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject("Errore lettura file");
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-        const base64 = dataUrl.split(",")[1];
-        resolve(base64);
-      };
-      img.onerror = () => reject("Errore caricamento immagine");
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-// ------- Render UI -------
+// ---- Rendering UI ----
 function renderHeader() {
   document.getElementById("groupName").textContent =
     "Gruppo: " + (state.groupName || "Famiglia");
-
   document.getElementById("currentUserName").textContent =
     getCurrentUserFullName();
-
-  const avatarEl = document.getElementById("currentUserAvatar");
-  avatarEl.style.backgroundSize = "cover";
-  avatarEl.style.backgroundPosition = "center";
-
-  if (state.currentUser.photoData) {
-    avatarEl.textContent = "";
-    avatarEl.style.backgroundImage =
-      `url(data:image/jpeg;base64,${state.currentUser.photoData})`;
-  } else {
-    avatarEl.style.backgroundImage = "none";
-    avatarEl.textContent = state.currentUser.avatar || "🙂";
-  }
+  document.getElementById("currentUserAvatar").textContent =
+    state.currentUser.avatar || "🙂";
 }
 
 function renderBookings() {
   const mappings = [
-    { key: "washing", elId: "washingInfo" },
-    { key: "rack1", elId: "rack1Info" },
-    { key: "rack2", elId: "rack2Info" },
-    { key: "shower", elId: "showerInfo" },
+    { key: "washing", elId: "washingInfo", label: "Lavatrice" },
+    { key: "rack1", elId: "rack1Info", label: "Stendino 1" },
+    { key: "rack2", elId: "rack2Info", label: "Stendino 2" },
+    { key: "shower", elId: "showerInfo", label: "Doccia" },
   ];
 
   mappings.forEach(({ key, elId }) => {
@@ -124,20 +83,20 @@ function renderShopping() {
   state.shopping.forEach((item, index) => {
     const li = document.createElement("li");
 
-    const top = document.createElement("div");
-    top.style.display = "flex";
-    top.style.flexDirection = "column";
-
     const span = document.createElement("span");
     span.textContent = item.text;
 
     const meta = document.createElement("small");
     meta.textContent = item.addedBy || "";
+    meta.style.marginLeft = "8px";
     meta.style.fontSize = "0.7rem";
     meta.style.color = "#666";
 
-    top.appendChild(span);
-    if (item.addedBy) top.appendChild(meta);
+    const leftBox = document.createElement("div");
+    leftBox.style.display = "flex";
+    leftBox.style.flexDirection = "column";
+    leftBox.appendChild(span);
+    if (item.addedBy) leftBox.appendChild(meta);
 
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "X";
@@ -147,7 +106,7 @@ function renderShopping() {
       renderShopping();
     });
 
-    li.appendChild(top);
+    li.appendChild(leftBox);
     li.appendChild(deleteBtn);
     listEl.appendChild(li);
   });
@@ -175,9 +134,7 @@ function renderBoard() {
 }
 
 function renderCleaning() {
-  const checkboxes = document.querySelectorAll(
-    ".cleaning-item input[type='checkbox']"
-  );
+  const checkboxes = document.querySelectorAll(".cleaning-item input[type='checkbox']");
   checkboxes.forEach((cb) => {
     const zone = cb.dataset.zone;
     cb.checked = !!state.cleaning[zone];
@@ -192,17 +149,8 @@ function renderAll() {
   renderCleaning();
 }
 
-// ------- Eventi -------
+// ---- Event handlers ----
 function setupEvents() {
-  // Precarica i campi dalla state
-  document.getElementById("groupInput").value = state.groupName || "";
-  document.getElementById("userFirstName").value =
-    state.currentUser.firstName || "";
-  document.getElementById("userLastName").value =
-    state.currentUser.lastName || "";
-  document.getElementById("userAvatar").value =
-    state.currentUser.avatar || "🙂";
-
   // Salva gruppo
   document.getElementById("saveGroupBtn").addEventListener("click", () => {
     const input = document.getElementById("groupInput");
@@ -211,29 +159,15 @@ function setupEvents() {
     renderHeader();
   });
 
-  // Salva utente + foto (locale)
-  document.getElementById("saveUserBtn").addEventListener("click", async () => {
+  // Salva utente
+  document.getElementById("saveUserBtn").addEventListener("click", () => {
     const firstName = document.getElementById("userFirstName").value.trim();
     const lastName = document.getElementById("userLastName").value.trim();
     let avatar = document.getElementById("userAvatar").value.trim();
     if (!avatar) avatar = "🙂";
-
-    const photoInput = document.getElementById("userPhoto");
-    let photoData = state.currentUser.photoData || null;
-
-    if (photoInput.files && photoInput.files[0]) {
-      try {
-        photoData = await readImageFileAsBase64Thumbnail(photoInput.files[0]);
-      } catch (e) {
-        console.error(e);
-        alert("Errore nel caricare la foto, uso solo l'emoji.");
-      }
-    }
-
-    state.currentUser = { firstName, lastName, avatar, photoData };
+    state.currentUser = { firstName, lastName, avatar };
     saveState();
     renderHeader();
-    alert("Utente aggiornato su questo dispositivo!");
   });
 
   // Prenotazioni
@@ -242,15 +176,13 @@ function setupEvents() {
       const type = btn.dataset.type;
       state.bookings[type] = {
         userName: getCurrentUserFullName(),
-        avatar: state.currentUser.avatar,
-        hasPhoto: !!state.currentUser.photoData,
-        time: new Date().toISOString(),
       };
       saveState();
       renderBookings();
     });
   });
 
+  // Libera prenotazione
   document.querySelectorAll(".clear-booking-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.type;
@@ -313,9 +245,15 @@ function setupEvents() {
   });
 }
 
-// ------- Init -------
+// ---- Init ----
 loadState();
 window.addEventListener("DOMContentLoaded", () => {
+  // Pre-carica i campi di testo con i valori salvati (opzionale)
+  document.getElementById("groupInput").value = state.groupName || "";
+  document.getElementById("userFirstName").value = state.currentUser.firstName || "";
+  document.getElementById("userLastName").value = state.currentUser.lastName || "";
+  document.getElementById("userAvatar").value = state.currentUser.avatar || "🙂";
+
   setupEvents();
   renderAll();
 });
