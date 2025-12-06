@@ -38,14 +38,24 @@
           <label for="userLastName">Cognome</label>
           <input id="userLastName" type="text" placeholder="Es. Rossi" />
         </div>
+        
         <div class="field-row">
-          <label for="userAvatar">Emoji avatar</label>
+          <label for="userAvatar">Emoji/avatar (opzionale)</label>
           <input id="userAvatar" type="text" placeholder="Es. 😎, 🐱, 🌸" maxlength="2" />
         </div>
-        <button id="saveUserBtn" class="primary-btn">Imposta utente su questo dispositivo</button>
+        
+        <div class="field-row">
+          <label for="userPhoto">Foto profilo (opzionale)</label>
+          <input id="userPhoto" type="file" accept="image/*" />
+          <p class="note">La foto verrà caricata online e usata per identificarti nell'app.</p>
+        </div>
+        
+        <button id="saveUserBtn" class="primary-btn">Registra/aggiorna utente nel gruppo</button>
         <p class="note">
-          Per ora l'utente è salvato solo su questo telefono. Poi lo sincronizzeremo tra tutti.
+          Questo utente verrà sincronizzato per il gruppo corrente (es. "Famiglia") e sarà visibile anche agli altri dispositivi.
         </p>
+
+        
       </section>
 
       <!-- Prenotazioni: lavatrice / stendini / doccia -->
