@@ -1,35 +1,57 @@
-// Versione locale: tutto salvato SOLO su questo dispositivo, via localStorage
-const STORAGE_KEY = "family_home_app_v1";
+// Stato globale salvato in localStorage (solo su questo dispositivo)
+const STORAGE_KEY = "montevecchio66_app_v1";
 
 let state = {
-  groupName: "Famiglia",
-  currentUser: {
+  user: {
     firstName: "",
     lastName: "",
-    avatar: "🙂",
+    photoData: null, // base64 della foto utente
   },
-  bookings: {
-    washing: null,
-    rack1: null,
-    rack2: null,
-    shower: null,
-  },
-  shopping: [],
-  board: [],
-  cleaning: {
-    cucina: false,
-    sala: false,
-    bagno_piccolo: false,
-    bagno_grande: false,
+  group: {
+    name: "Corso Montevecchio 66",
+    bookings: {
+      washing: null,
+      rack1: null,
+      rack2: null,
+      shower: null,
+    },
+    shopping: [],
+    board: [],
+    cleaning: {
+      cucina: false,
+      sala: false,
+      bagno_piccolo: false,
+      bagno_grande: false,
+    },
   },
 };
 
-// ----- localStorage -----
+let cameraStream = null;
+
+// ---------- Persistenza ----------
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      state = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Merge “sicuro” nel caso manchino campi
+      state = {
+        ...state,
+        ...parsed,
+        user: { ...state.user, ...(parsed.user || {}) },
+        group: {
+          ...state.group,
+          ...(parsed.group || {}),
+          bookings: {
+            ...state.group.bookings,
+            ...((parsed.group && parsed.group.bookings) || {}),
+          },
+          cleaning: {
+            ...state.group.cleaning,
+            ...((parsed.group && parsed.group.cleaning) || {}),
+          },
+        },
+      };
     }
   } catch (e) {
     console.error("Errore caricando lo stato:", e);
@@ -40,29 +62,121 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function getCurrentUserFullName() {
-  const { firstName, lastName } = state.currentUser;
+// ---------- Utility immagini ----------
+function readImageFileAsBase64Thumbnail(file, maxSize = 256) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject("Errore lettura file");
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        const base64 = dataUrl.split(",")[1];
+        resolve(base64);
+      };
+      img.onerror = () => reject("Errore caricamento immagine");
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function captureFrameFromVideo(video, maxSize = 256) {
+  return new Promise((resolve, reject) => {
+    if (!video.videoWidth || !video.videoHeight) {
+      return reject("Video non pronto");
+    }
+    const canvas = document.createElement("canvas");
+    const scale = Math.min(maxSize / video.videoWidth, maxSize / video.videoHeight, 1);
+    const w = Math.round(video.videoWidth * scale);
+    const h = Math.round(video.videoHeight * scale);
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+    const base64 = dataUrl.split(",")[1];
+    resolve(base64);
+  });
+}
+
+// ---------- Helpers ----------
+function getUserFullName() {
+  const { firstName, lastName } = state.user;
   const full = `${firstName || ""} ${lastName || ""}`.trim();
   return full || "Utente anonimo";
 }
 
-// ----- Render UI -----
+function showScreen(name) {
+  const login = document.getElementById("loginScreen");
+  const main = document.getElementById("mainScreen");
+  if (!login || !main) return;
+
+  if (name === "login") {
+    login.style.display = "flex";
+    main.style.display = "none";
+  } else {
+    login.style.display = "none";
+    main.style.display = "flex";
+  }
+}
+
+// ---------- Render: LOGIN ----------
+function renderLoginAvatar() {
+  const avatarEl = document.getElementById("loginAvatarPreview");
+  if (!avatarEl) return;
+
+  avatarEl.innerHTML = "";
+
+  if (state.user.photoData) {
+    avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
+    avatarEl.style.backgroundSize = "cover";
+    avatarEl.style.backgroundPosition = "center";
+  } else {
+    avatarEl.style.backgroundImage = "none";
+    const span = document.createElement("span");
+    span.textContent = "🙂";
+    avatarEl.appendChild(span);
+  }
+}
+
+function renderLoginForm() {
+  const firstInput = document.getElementById("loginFirstName");
+  const lastInput = document.getElementById("loginLastName");
+
+  if (firstInput) firstInput.value = state.user.firstName || "";
+  if (lastInput) lastInput.value = state.user.lastName || "";
+  renderLoginAvatar();
+}
+
+// ---------- Render: MAIN ----------
 function renderHeader() {
   const groupNameEl = document.getElementById("groupName");
   const userNameEl = document.getElementById("currentUserName");
   const avatarEl = document.getElementById("currentUserAvatar");
 
-  if (groupNameEl) {
-    groupNameEl.textContent = "Gruppo: " + (state.groupName || "Famiglia");
-  }
-
-  if (userNameEl) {
-    userNameEl.textContent = getCurrentUserFullName();
-  }
+  if (groupNameEl) groupNameEl.textContent = state.group.name || "Corso Montevecchio 66";
+  if (userNameEl) userNameEl.textContent = getUserFullName();
 
   if (avatarEl) {
-    avatarEl.textContent = state.currentUser.avatar || "🙂";
-    avatarEl.style.backgroundImage = "none";
+    if (state.user.photoData) {
+      avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
+      avatarEl.textContent = "";
+    } else {
+      avatarEl.style.backgroundImage = "none";
+      const initials = (state.user.firstName && state.user.lastName)
+        ? (state.user.firstName[0] + state.user.lastName[0]).toUpperCase()
+        : "🙂";
+      avatarEl.textContent = initials;
+    }
   }
 }
 
@@ -76,7 +190,7 @@ function renderBookings() {
 
   mappings.forEach(({ key, elId }) => {
     const el = document.getElementById(elId);
-    const booking = state.bookings[key];
+    const booking = state.group.bookings[key];
     if (!el) return;
     if (!booking) {
       el.textContent = "Nessuno ha prenotato";
@@ -89,10 +203,9 @@ function renderBookings() {
 function renderShopping() {
   const listEl = document.getElementById("shoppingList");
   if (!listEl) return;
-
   listEl.innerHTML = "";
 
-  state.shopping.forEach((item, index) => {
+  state.group.shopping.forEach((item, index) => {
     const li = document.createElement("li");
 
     const top = document.createElement("div");
@@ -113,7 +226,7 @@ function renderShopping() {
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "X";
     deleteBtn.addEventListener("click", () => {
-      state.shopping.splice(index, 1);
+      state.group.shopping.splice(index, 1);
       saveState();
       renderShopping();
     });
@@ -127,10 +240,9 @@ function renderShopping() {
 function renderBoard() {
   const listEl = document.getElementById("boardMessages");
   if (!listEl) return;
-
   listEl.innerHTML = "";
 
-  state.board.forEach((msg) => {
+  state.group.board.forEach((msg) => {
     const li = document.createElement("li");
     li.className = "board-item";
 
@@ -153,11 +265,11 @@ function renderCleaning() {
   );
   checkboxes.forEach((cb) => {
     const zone = cb.dataset.zone;
-    cb.checked = !!state.cleaning[zone];
+    cb.checked = !!state.group.cleaning[zone];
   });
 }
 
-function renderAll() {
+function renderMain() {
   renderHeader();
   renderBookings();
   renderShopping();
@@ -165,55 +277,117 @@ function renderAll() {
   renderCleaning();
 }
 
-// ----- Eventi -----
-function setupEvents() {
-  // Precarica i campi con lo stato salvato
-  const groupInput = document.getElementById("groupInput");
-  const userFirstNameInput = document.getElementById("userFirstName");
-  const userLastNameInput = document.getElementById("userLastName");
-  const userAvatarInput = document.getElementById("userAvatar");
+// ---------- Eventi: LOGIN ----------
+function setupLoginEvents() {
+  const cameraPanel = document.getElementById("cameraPanel");
+  const video = document.getElementById("cameraVideo");
+  const openCameraBtn = document.getElementById("openCameraBtn");
+  const closeCameraBtn = document.getElementById("closeCameraBtn");
+  const takePhotoBtn = document.getElementById("takePhotoBtn");
+  const fileInput = document.getElementById("photoFileInput");
+  const registerBtn = document.getElementById("registerBtn");
 
-  if (groupInput) groupInput.value = state.groupName || "";
-  if (userFirstNameInput)
-    userFirstNameInput.value = state.currentUser.firstName || "";
-  if (userLastNameInput)
-    userLastNameInput.value = state.currentUser.lastName || "";
-  if (userAvatarInput)
-    userAvatarInput.value = state.currentUser.avatar || "🙂";
-
-  // Salvataggio gruppo
-  const saveGroupBtn = document.getElementById("saveGroupBtn");
-  if (saveGroupBtn && groupInput) {
-    saveGroupBtn.addEventListener("click", () => {
-      state.groupName = groupInput.value.trim() || "Famiglia";
-      saveState();
-      renderHeader();
+  // Apri fotocamera
+  if (openCameraBtn && cameraPanel && video) {
+    openCameraBtn.addEventListener("click", async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("La fotocamera non è supportata da questo browser. Usa la galleria.");
+        return;
+      }
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = cameraStream;
+        cameraPanel.classList.remove("hidden");
+      } catch (e) {
+        console.error(e);
+        alert("Impossibile accedere alla fotocamera. Controlla i permessi.");
+      }
     });
   }
 
-  // Salvataggio utente
-  const saveUserBtn = document.getElementById("saveUserBtn");
-  if (saveUserBtn && userFirstNameInput && userLastNameInput && userAvatarInput) {
-    saveUserBtn.addEventListener("click", () => {
-      const firstName = userFirstNameInput.value.trim();
-      const lastName = userLastNameInput.value.trim();
-      let avatar = userAvatarInput.value.trim();
-      if (!avatar) avatar = "🙂";
-
-      state.currentUser = { firstName, lastName, avatar };
-      saveState();
-      renderHeader();
-      alert("Utente impostato su questo dispositivo!");
+  // Chiudi fotocamera
+  if (closeCameraBtn && cameraPanel) {
+    closeCameraBtn.addEventListener("click", () => {
+      cameraPanel.classList.add("hidden");
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((t) => t.stop());
+        cameraStream = null;
+      }
     });
   }
 
+  // Scatta foto
+  if (takePhotoBtn && video && cameraPanel) {
+    takePhotoBtn.addEventListener("click", async () => {
+      try {
+        const base64 = await captureFrameFromVideo(video);
+        state.user.photoData = base64;
+        saveState();
+        renderLoginAvatar();
+        // Chiudi camera dopo lo scatto
+        cameraPanel.classList.add("hidden");
+        if (cameraStream) {
+          cameraStream.getTracks().forEach((t) => t.stop());
+          cameraStream = null;
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Errore nello scattare la foto. Riprova.");
+      }
+    });
+  }
+
+  // Carica da galleria
+  if (fileInput) {
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      try {
+        const base64 = await readImageFileAsBase64Thumbnail(file);
+        state.user.photoData = base64;
+        saveState();
+        renderLoginAvatar();
+      } catch (e) {
+        console.error(e);
+        alert("Errore nel caricare la foto dalla galleria.");
+      }
+    });
+  }
+
+  // Registrazione / Entra
+  if (registerBtn) {
+    registerBtn.addEventListener("click", () => {
+      const firstInput = document.getElementById("loginFirstName");
+      const lastInput = document.getElementById("loginLastName");
+      const firstName = (firstInput && firstInput.value.trim()) || "";
+      const lastName = (lastInput && lastInput.value.trim()) || "";
+
+      if (!firstName || !lastName) {
+        alert("Inserisci sia nome che cognome.");
+        return;
+      }
+
+      state.user.firstName = firstName;
+      state.user.lastName = lastName;
+
+      // Non obbligo la foto: se non c'è, useremo le iniziali
+      saveState();
+
+      // Passa alla schermata principale
+      renderMain();
+      showScreen("main");
+    });
+  }
+}
+
+// ---------- Eventi: MAIN ----------
+function setupMainEvents() {
   // Prenotazioni
   document.querySelectorAll(".book-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.type;
-      state.bookings[type] = {
-        userName: getCurrentUserFullName(),
-        avatar: state.currentUser.avatar,
+      state.group.bookings[type] = {
+        userName: getUserFullName(),
         time: new Date().toISOString(),
       };
       saveState();
@@ -224,7 +398,7 @@ function setupEvents() {
   document.querySelectorAll(".clear-booking-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.type;
-      state.bookings[type] = null;
+      state.group.bookings[type] = null;
       saveState();
       renderBookings();
     });
@@ -238,10 +412,9 @@ function setupEvents() {
       e.preventDefault();
       const text = shoppingInput.value.trim();
       if (!text) return;
-
-      state.shopping.push({
+      state.group.shopping.push({
         text,
-        addedBy: getCurrentUserFullName(),
+        addedBy: getUserFullName(),
       });
       shoppingInput.value = "";
       saveState();
@@ -266,9 +439,9 @@ function setupEvents() {
         minute: "2-digit",
       });
 
-      state.board.unshift({
+      state.group.board.unshift({
         text,
-        author: getCurrentUserFullName(),
+        author: getUserFullName(),
         date: dateStr,
       });
       boardInput.value = "";
@@ -284,15 +457,32 @@ function setupEvents() {
   cleaningCheckboxes.forEach((cb) => {
     cb.addEventListener("change", () => {
       const zone = cb.dataset.zone;
-      state.cleaning[zone] = cb.checked;
+      state.group.cleaning[zone] = cb.checked;
       saveState();
     });
   });
 }
 
-// ----- Init -----
+// ---------- Init ----------
 loadState();
+
 window.addEventListener("DOMContentLoaded", () => {
-  setupEvents();
-  renderAll();
+  // Setup eventi
+  setupLoginEvents();
+  setupMainEvents();
+
+  // Se l'utente è già registrato (nome presente), vai direttamente alla casa
+  const hasUser =
+    state.user &&
+    typeof state.user.firstName === "string" &&
+    state.user.firstName.trim().length > 0;
+
+  if (hasUser) {
+    // assicura che header e resto siano aggiornati
+    renderMain();
+    showScreen("main");
+  } else {
+    renderLoginForm();
+    showScreen("login");
+  }
 });
