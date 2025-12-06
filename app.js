@@ -1,31 +1,16 @@
-// app.js (versione senza Firebase Storage, solo Firestore)
+// App locale: tutti i dati salvati SOLO su questo dispositivo (localStorage)
+// Nessun backend, niente costi, niente billing.
 
-import {
-  doc,
-  getDoc,
-  onSnapshot,
-  setDoc,
-  updateDoc,
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+const STORAGE_KEY = "family_home_app_local_v2";
 
-// Prendiamo db da window._firebase (inizializzato in index.html)
-const { db } = window._firebase;
-
-// ID del gruppo (per ora fisso, poi si può rendere dinamico)
-const DEFAULT_GROUP_ID = "default-group";
-const LOCAL_USER_KEY = "family_home_local_user_v1";
-
-// Utente locale (chi usa questo dispositivo)
-let localUser = {
-  firstName: "",
-  lastName: "",
-  avatar: "🙂",
-  photoData: null, // Base64 della foto (thumbnail)
-};
-
-// Stato condiviso del gruppo
-let groupState = {
+let state = {
   groupName: "Famiglia",
+  currentUser: {
+    firstName: "",
+    lastName: "",
+    avatar: "🙂",
+    photoData: null, // Base64 della foto (thumbnail)
+  },
   bookings: {
     washing: null,
     rack1: null,
@@ -42,28 +27,29 @@ let groupState = {
   },
 };
 
-// ---------- Helpers locali ----------
-function loadLocalUser() {
+// ------- Helpers localStorage -------
+function loadState() {
   try {
-    const raw = localStorage.getItem(LOCAL_USER_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      localUser = JSON.parse(raw);
+      state = JSON.parse(raw);
     }
   } catch (e) {
-    console.error("Errore caricando utente locale", e);
+    console.error("Errore nel parsing dello stato", e);
   }
 }
 
-function saveLocalUser() {
-  localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(localUser));
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 function getCurrentUserFullName() {
-  const full = `${localUser.firstName || ""} ${localUser.lastName || ""}`.trim();
+  const { firstName, lastName } = state.currentUser;
+  const full = `${firstName || ""} ${lastName || ""}`.trim();
   return full || "Utente anonimo";
 }
 
-// Riduci la foto e convertila in Base64 (thumbnail)
+// ------- Foto: riduci e converti in Base64 -------
 function readImageFileAsBase64Thumbnail(file, maxSize = 128) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -90,56 +76,10 @@ function readImageFileAsBase64Thumbnail(file, maxSize = 128) {
   });
 }
 
-// ---------- Firestore ----------
-function groupDocRef() {
-  return doc(db, "groups", DEFAULT_GROUP_ID);
-}
-
-async function initGroupInFirestoreIfNeeded() {
-  const gRef = groupDocRef();
-  const snap = await getDoc(gRef);
-  if (!snap.exists()) {
-    await setDoc(gRef, {
-      groupName: "Famiglia",
-      bookings: {
-        washing: null,
-        rack1: null,
-        rack2: null,
-        shower: null,
-      },
-      shopping: [],
-      board: [],
-      cleaning: {
-        cucina: false,
-        sala: false,
-        bagno_piccolo: false,
-        bagno_grande: false,
-      },
-      users: [],
-      createdAt: new Date().toISOString(),
-    });
-  }
-}
-
-function subscribeToGroupChanges() {
-  const gRef = groupDocRef();
-  onSnapshot(gRef, (snap) => {
-    if (!snap.exists()) return;
-    const data = snap.data();
-    groupState.groupName = data.groupName || "Famiglia";
-    groupState.bookings = data.bookings || groupState.bookings;
-    groupState.shopping = data.shopping || [];
-    groupState.board = data.board || [];
-    groupState.cleaning = data.cleaning || groupState.cleaning;
-    // (eventualmente: data.users per mostrare elenco membri, più avanti)
-    renderAll();
-  });
-}
-
-// ---------- Render UI ----------
+// ------- Render UI -------
 function renderHeader() {
   document.getElementById("groupName").textContent =
-    "Gruppo: " + (groupState.groupName || "Famiglia");
+    "Gruppo: " + (state.groupName || "Famiglia");
 
   document.getElementById("currentUserName").textContent =
     getCurrentUserFullName();
@@ -148,13 +88,13 @@ function renderHeader() {
   avatarEl.style.backgroundSize = "cover";
   avatarEl.style.backgroundPosition = "center";
 
-  if (localUser.photoData) {
+  if (state.currentUser.photoData) {
     avatarEl.textContent = "";
     avatarEl.style.backgroundImage =
-      `url(data:image/jpeg;base64,${localUser.photoData})`;
+      `url(data:image/jpeg;base64,${state.currentUser.photoData})`;
   } else {
     avatarEl.style.backgroundImage = "none";
-    avatarEl.textContent = localUser.avatar || "🙂";
+    avatarEl.textContent = state.currentUser.avatar || "🙂";
   }
 }
 
@@ -168,7 +108,7 @@ function renderBookings() {
 
   mappings.forEach(({ key, elId }) => {
     const el = document.getElementById(elId);
-    const booking = groupState.bookings[key];
+    const booking = state.bookings[key];
     if (!booking) {
       el.textContent = "Nessuno ha prenotato";
     } else {
@@ -181,7 +121,7 @@ function renderShopping() {
   const listEl = document.getElementById("shoppingList");
   listEl.innerHTML = "";
 
-  groupState.shopping.forEach((item, index) => {
+  state.shopping.forEach((item, index) => {
     const li = document.createElement("li");
 
     const top = document.createElement("div");
@@ -201,14 +141,10 @@ function renderShopping() {
 
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "X";
-    deleteBtn.addEventListener("click", async () => {
-      const gRef = groupDocRef();
-      const gSnap = await getDoc(gRef);
-      if (!gSnap.exists()) return;
-      const data = gSnap.data();
-      const shopping = data.shopping || [];
-      shopping.splice(index, 1);
-      await updateDoc(gRef, { shopping });
+    deleteBtn.addEventListener("click", () => {
+      state.shopping.splice(index, 1);
+      saveState();
+      renderShopping();
     });
 
     li.appendChild(top);
@@ -221,7 +157,7 @@ function renderBoard() {
   const listEl = document.getElementById("boardMessages");
   listEl.innerHTML = "";
 
-  groupState.board.forEach((msg) => {
+  state.board.forEach((msg) => {
     const li = document.createElement("li");
     li.className = "board-item";
 
@@ -244,7 +180,7 @@ function renderCleaning() {
   );
   checkboxes.forEach((cb) => {
     const zone = cb.dataset.zone;
-    cb.checked = !!groupState.cleaning[zone];
+    cb.checked = !!state.cleaning[zone];
   });
 }
 
@@ -256,22 +192,26 @@ function renderAll() {
   renderCleaning();
 }
 
-// ---------- Eventi ----------
+// ------- Eventi -------
 function setupEvents() {
-  // Pre-carica form con utente locale
-  document.getElementById("userFirstName").value = localUser.firstName || "";
-  document.getElementById("userLastName").value = localUser.lastName || "";
-  document.getElementById("userAvatar").value = localUser.avatar || "🙂";
+  // Precarica i campi dalla state
+  document.getElementById("groupInput").value = state.groupName || "";
+  document.getElementById("userFirstName").value =
+    state.currentUser.firstName || "";
+  document.getElementById("userLastName").value =
+    state.currentUser.lastName || "";
+  document.getElementById("userAvatar").value =
+    state.currentUser.avatar || "🙂";
 
-  // Salva nome gruppo
-  document.getElementById("saveGroupBtn").addEventListener("click", async () => {
+  // Salva gruppo
+  document.getElementById("saveGroupBtn").addEventListener("click", () => {
     const input = document.getElementById("groupInput");
-    const newName = input.value.trim() || "Famiglia";
-    const gRef = groupDocRef();
-    await updateDoc(gRef, { groupName: newName });
+    state.groupName = input.value.trim() || "Famiglia";
+    saveState();
+    renderHeader();
   });
 
-  // Salva/aggiorna utente + foto
+  // Salva utente + foto (locale)
   document.getElementById("saveUserBtn").addEventListener("click", async () => {
     const firstName = document.getElementById("userFirstName").value.trim();
     const lastName = document.getElementById("userLastName").value.trim();
@@ -279,101 +219,70 @@ function setupEvents() {
     if (!avatar) avatar = "🙂";
 
     const photoInput = document.getElementById("userPhoto");
-    let photoData = localUser.photoData || null;
+    let photoData = state.currentUser.photoData || null;
 
-    // Se l'utente ha selezionato una nuova foto, la convertiamo
     if (photoInput.files && photoInput.files[0]) {
-      photoData = await readImageFileAsBase64Thumbnail(photoInput.files[0]);
-    }
-
-    localUser = { firstName, lastName, avatar, photoData };
-    saveLocalUser();
-
-    const gRef = groupDocRef();
-    const gSnap = await getDoc(gRef);
-    if (gSnap.exists()) {
-      const data = gSnap.data();
-      const users = data.users || [];
-      const idx = users.findIndex(
-        (u) =>
-          (u.firstName || "") === firstName &&
-          (u.lastName || "") === lastName
-      );
-      const userObj = { firstName, lastName, avatar, photoData };
-
-      if (idx >= 0) {
-        users[idx] = userObj;
-      } else {
-        users.push(userObj);
+      try {
+        photoData = await readImageFileAsBase64Thumbnail(photoInput.files[0]);
+      } catch (e) {
+        console.error(e);
+        alert("Errore nel caricare la foto, uso solo l'emoji.");
       }
-      await updateDoc(gRef, { users });
     }
 
+    state.currentUser = { firstName, lastName, avatar, photoData };
+    saveState();
     renderHeader();
-    alert("Utente registrato/aggiornato nel gruppo!");
+    alert("Utente aggiornato su questo dispositivo!");
   });
 
   // Prenotazioni
   document.querySelectorAll(".book-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const type = btn.dataset.type;
-      const gRef = groupDocRef();
-      const gSnap = await getDoc(gRef);
-      if (!gSnap.exists()) return;
-      const data = gSnap.data();
-      const bookings = data.bookings || {};
-      bookings[type] = {
+      state.bookings[type] = {
         userName: getCurrentUserFullName(),
-        avatar: localUser.avatar,
-        hasPhoto: !!localUser.photoData,
+        avatar: state.currentUser.avatar,
+        hasPhoto: !!state.currentUser.photoData,
+        time: new Date().toISOString(),
       };
-      await updateDoc(gRef, { bookings });
+      saveState();
+      renderBookings();
     });
   });
 
   document.querySelectorAll(".clear-booking-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const type = btn.dataset.type;
-      const gRef = groupDocRef();
-      const gSnap = await getDoc(gRef);
-      if (!gSnap.exists()) return;
-      const data = gSnap.data();
-      const bookings = data.bookings || {};
-      bookings[type] = null;
-      await updateDoc(gRef, { bookings });
+      state.bookings[type] = null;
+      saveState();
+      renderBookings();
     });
   });
 
   // Lista spesa
   const shoppingForm = document.getElementById("shoppingForm");
   const shoppingInput = document.getElementById("shoppingInput");
-  shoppingForm.addEventListener("submit", async (e) => {
+  shoppingForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const text = shoppingInput.value.trim();
     if (!text) return;
-
-    const gRef = groupDocRef();
-    const gSnap = await getDoc(gRef);
-    if (!gSnap.exists()) return;
-    const data = gSnap.data();
-    const shopping = data.shopping || [];
-    shopping.push({
+    state.shopping.push({
       text,
       addedBy: getCurrentUserFullName(),
     });
-    await updateDoc(gRef, { shopping });
-
     shoppingInput.value = "";
+    saveState();
+    renderShopping();
   });
 
   // Lavagna
   const boardForm = document.getElementById("boardForm");
   const boardInput = document.getElementById("boardInput");
-  boardForm.addEventListener("submit", async (e) => {
+  boardForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const text = boardInput.value.trim();
     if (!text) return;
-
     const now = new Date();
     const dateStr = now.toLocaleString("it-IT", {
       day: "2-digit",
@@ -381,20 +290,14 @@ function setupEvents() {
       hour: "2-digit",
       minute: "2-digit",
     });
-
-    const gRef = groupDocRef();
-    const gSnap = await getDoc(gRef);
-    if (!gSnap.exists()) return;
-    const data = gSnap.data();
-    const board = data.board || [];
-    board.unshift({
+    state.board.unshift({
       text,
       author: getCurrentUserFullName(),
       date: dateStr,
     });
-    await updateDoc(gRef, { board });
-
     boardInput.value = "";
+    saveState();
+    renderBoard();
   });
 
   // Pulizie
@@ -402,27 +305,17 @@ function setupEvents() {
     ".cleaning-item input[type='checkbox']"
   );
   cleaningCheckboxes.forEach((cb) => {
-    cb.addEventListener("change", async () => {
+    cb.addEventListener("change", () => {
       const zone = cb.dataset.zone;
-      const gRef = groupDocRef();
-      const gSnap = await getDoc(gRef);
-      if (!gSnap.exists()) return;
-      const data = gSnap.data();
-      const cleaning = data.cleaning || {};
-      cleaning[zone] = cb.checked;
-      await updateDoc(gRef, { cleaning });
+      state.cleaning[zone] = cb.checked;
+      saveState();
     });
   });
 }
 
-// ---------- Init ----------
-async function init() {
-  loadLocalUser();
-  await initGroupInFirestoreIfNeeded();
-  setupEvents();
-  subscribeToGroupChanges();
-}
-
+// ------- Init -------
+loadState();
 window.addEventListener("DOMContentLoaded", () => {
-  init().catch((e) => console.error(e));
+  setupEvents();
+  renderAll();
 });
