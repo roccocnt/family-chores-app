@@ -1,38 +1,29 @@
-// app.js come modulo ES
+// app.js (versione senza Firebase Storage, solo Firestore)
 
 import {
-  collection,
   doc,
   getDoc,
-  getDocs,
   onSnapshot,
   setDoc,
   updateDoc,
-  arrayUnion,
-  arrayRemove,
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
+// Prendiamo db da window._firebase (inizializzato in index.html)
+const { db } = window._firebase;
 
-// Firebase init (già fatto in index.html, lo riprendiamo da window)
-const { db, storage } = window._firebase;
-
-// 🔑 ID fissi di base
-const DEFAULT_GROUP_ID = "default-group"; // per ora usiamo sempre questo
+// ID del gruppo (per ora fisso, poi si può rendere dinamico)
+const DEFAULT_GROUP_ID = "default-group";
 const LOCAL_USER_KEY = "family_home_local_user_v1";
 
-// Stato locale di interfaccia (parte deriva da Firestore)
+// Utente locale (chi usa questo dispositivo)
 let localUser = {
   firstName: "",
   lastName: "",
   avatar: "🙂",
-  photoURL: null,
+  photoData: null, // Base64 della foto (thumbnail)
 };
 
+// Stato condiviso del gruppo
 let groupState = {
   groupName: "Famiglia",
   bookings: {
@@ -51,7 +42,7 @@ let groupState = {
   },
 };
 
-// ---- Helpers locali ----
+// ---------- Helpers locali ----------
 function loadLocalUser() {
   try {
     const raw = localStorage.getItem(LOCAL_USER_KEY);
@@ -72,12 +63,38 @@ function getCurrentUserFullName() {
   return full || "Utente anonimo";
 }
 
-// ---- Firestore: riferimenti ----
+// Riduci la foto e convertila in Base64 (thumbnail)
+function readImageFileAsBase64Thumbnail(file, maxSize = 128) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject("Errore lettura file");
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        const base64 = dataUrl.split(",")[1];
+        resolve(base64);
+      };
+      img.onerror = () => reject("Errore caricamento immagine");
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Firestore ----------
 function groupDocRef() {
   return doc(db, "groups", DEFAULT_GROUP_ID);
 }
 
-// ---- Sincronizzazione Firestore ----
 async function initGroupInFirestoreIfNeeded() {
   const gRef = groupDocRef();
   const snap = await getDoc(gRef);
@@ -98,13 +115,12 @@ async function initGroupInFirestoreIfNeeded() {
         bagno_piccolo: false,
         bagno_grande: false,
       },
-      users: [], // elenco utenti registrati
+      users: [],
       createdAt: new Date().toISOString(),
     });
   }
 }
 
-// Listener in tempo reale sul documento gruppo
 function subscribeToGroupChanges() {
   const gRef = groupDocRef();
   onSnapshot(gRef, (snap) => {
@@ -115,12 +131,12 @@ function subscribeToGroupChanges() {
     groupState.shopping = data.shopping || [];
     groupState.board = data.board || [];
     groupState.cleaning = data.cleaning || groupState.cleaning;
-    // render
+    // (eventualmente: data.users per mostrare elenco membri, più avanti)
     renderAll();
   });
 }
 
-// ---- UI Render ----
+// ---------- Render UI ----------
 function renderHeader() {
   document.getElementById("groupName").textContent =
     "Gruppo: " + (groupState.groupName || "Famiglia");
@@ -129,11 +145,13 @@ function renderHeader() {
     getCurrentUserFullName();
 
   const avatarEl = document.getElementById("currentUserAvatar");
-  if (localUser.photoURL) {
+  avatarEl.style.backgroundSize = "cover";
+  avatarEl.style.backgroundPosition = "center";
+
+  if (localUser.photoData) {
     avatarEl.textContent = "";
-    avatarEl.style.backgroundImage = `url(${localUser.photoURL})`;
-    avatarEl.style.backgroundSize = "cover";
-    avatarEl.style.backgroundPosition = "center";
+    avatarEl.style.backgroundImage =
+      `url(data:image/jpeg;base64,${localUser.photoData})`;
   } else {
     avatarEl.style.backgroundImage = "none";
     avatarEl.textContent = localUser.avatar || "🙂";
@@ -238,14 +256,14 @@ function renderAll() {
   renderCleaning();
 }
 
-// ---- Event handlers ----
+// ---------- Eventi ----------
 function setupEvents() {
-  // Precarica form utente con localUser
+  // Pre-carica form con utente locale
   document.getElementById("userFirstName").value = localUser.firstName || "";
   document.getElementById("userLastName").value = localUser.lastName || "";
   document.getElementById("userAvatar").value = localUser.avatar || "🙂";
 
-  // Salva gruppo (solo nome, condiviso)
+  // Salva nome gruppo
   document.getElementById("saveGroupBtn").addEventListener("click", async () => {
     const input = document.getElementById("groupInput");
     const newName = input.value.trim() || "Famiglia";
@@ -253,7 +271,7 @@ function setupEvents() {
     await updateDoc(gRef, { groupName: newName });
   });
 
-  // Salva/aggiorna utente (nome, cognome, avatar, foto)
+  // Salva/aggiorna utente + foto
   document.getElementById("saveUserBtn").addEventListener("click", async () => {
     const firstName = document.getElementById("userFirstName").value.trim();
     const lastName = document.getElementById("userLastName").value.trim();
@@ -261,50 +279,34 @@ function setupEvents() {
     if (!avatar) avatar = "🙂";
 
     const photoInput = document.getElementById("userPhoto");
-    let photoURL = localUser.photoURL || null;
+    let photoData = localUser.photoData || null;
 
-    // Se l'utente ha scelto una nuova foto, caricala
+    // Se l'utente ha selezionato una nuova foto, la convertiamo
     if (photoInput.files && photoInput.files[0]) {
-      const file = photoInput.files[0];
-      const fileNameSafe =
-        (firstName || "user") + "_" + (lastName || "local") + "_" + Date.now();
-      const imgRef = storageRef(
-        storage,
-        `user_photos/${DEFAULT_GROUP_ID}/${fileNameSafe}`
-      );
-      await uploadBytes(imgRef, file);
-      photoURL = await getDownloadURL(imgRef);
+      photoData = await readImageFileAsBase64Thumbnail(photoInput.files[0]);
     }
 
-    localUser = { firstName, lastName, avatar, photoURL };
+    localUser = { firstName, lastName, avatar, photoData };
     saveLocalUser();
 
-    // Registra l'utente nella lista utenti del gruppo (arrayUnion per evitare duplicati uguali)
     const gRef = groupDocRef();
-    const userObj = {
-      firstName,
-      lastName,
-      avatar,
-      photoURL: photoURL || null,
-    };
-
     const gSnap = await getDoc(gRef);
     if (gSnap.exists()) {
       const data = gSnap.data();
       const users = data.users || [];
-      // rimpiazziamo se esiste già un utente con stesso nome/cognome
-      const existingIndex = users.findIndex(
+      const idx = users.findIndex(
         (u) =>
           (u.firstName || "") === firstName &&
           (u.lastName || "") === lastName
       );
-      if (existingIndex >= 0) {
-        users[existingIndex] = userObj;
-        await updateDoc(gRef, { users });
+      const userObj = { firstName, lastName, avatar, photoData };
+
+      if (idx >= 0) {
+        users[idx] = userObj;
       } else {
         users.push(userObj);
-        await updateDoc(gRef, { users });
       }
+      await updateDoc(gRef, { users });
     }
 
     renderHeader();
@@ -323,8 +325,7 @@ function setupEvents() {
       bookings[type] = {
         userName: getCurrentUserFullName(),
         avatar: localUser.avatar,
-        photoURL: localUser.photoURL || null,
-        time: new Date().toISOString(),
+        hasPhoto: !!localUser.photoData,
       };
       await updateDoc(gRef, { bookings });
     });
@@ -414,12 +415,12 @@ function setupEvents() {
   });
 }
 
-// ---- Init ----
+// ---------- Init ----------
 async function init() {
   loadLocalUser();
   await initGroupInFirestoreIfNeeded();
   setupEvents();
-  subscribeToGroupChanges(); // attach listener realtime
+  subscribeToGroupChanges();
 }
 
 window.addEventListener("DOMContentLoaded", () => {
