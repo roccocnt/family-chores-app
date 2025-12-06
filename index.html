@@ -145,12 +145,10 @@
 
   <!-- Firebase SDK -->
   <script type="module">
-    // Import dei moduli Firebase dalla CDN
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-    import { getStorage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
 
-    // ⬇️ INCOLLA QUI la tua config personale di Firebase
+    // ⬇️ la tua config qui
     const firebaseConfig = {
       apiKey: "API_KEY",
       authDomain: ".....firebaseapp.com",
@@ -160,15 +158,14 @@
       appId: "....."
     };
 
-    // Inizializza Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const storage = getStorage(app);
 
-    // Rendi disponibili a app.js
-    window._firebase = { app, db, storage };
+    // Esponiamo solo app e db
+    window._firebase = { app, db };
   </script>
 
   <script src="app.js" type="module"></script>
+
 </body>
 </html>
