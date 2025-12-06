@@ -377,7 +377,7 @@ main {
   flex: 1;
 }
 
-/* Lavagna (vecchia lista) */
+/* Lavagna (vecchia lista, non più usata qui ma lascio lo stile) */
 
 .board-list {
   list-style: none;
@@ -530,7 +530,7 @@ main {
   position: relative;
   border-radius: 16px;
   border: 10px solid #8b5a2b;
-  background: #2f3b2f;
+  background: radial-gradient(circle at 20% 20%, #384538 0, #2f3b2f 45%, #263026 100%);
   min-height: 140px;
   max-height: 220px;
   display: flex;
@@ -543,10 +543,16 @@ main {
 .blackboard-text {
   color: #fdfdfd;
   font-family: "Comic Sans MS", "Chalkboard SE", "Bradley Hand", cursive;
-  font-size: 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
   text-align: center;
   white-space: pre-line;
-  text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.03em;
+  opacity: 0.95;
+  text-shadow:
+    0 0 1px rgba(255, 255, 255, 0.7),
+    0 0 3px rgba(255, 255, 255, 0.5),
+    0 0 6px rgba(255, 255, 255, 0.3);
 }
 
 .blackboard-placeholder {
