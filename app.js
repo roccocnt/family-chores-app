@@ -1,5 +1,7 @@
 // Stato globale salvato in localStorage (solo su questo dispositivo)
-const STORAGE_KEY = "montevecchio66_app_v1";
+const STORAGE_KEY = "montevecchio66_app_v2";
+const MS_HOUR = 60 * 60 * 1000;
+const MS_90_MIN = 90 * 60 * 1000;
 
 let state = {
   user: {
@@ -9,12 +11,8 @@ let state = {
   },
   group: {
     name: "Corso Montevecchio 66",
-    bookings: {
-      washing: null,
-      rack1: null,
-      rack2: null,
-      shower: null,
-    },
+    laundryReservations: [], // max 2
+    showerBookings: [], // lista docce (mostriamo sempre le 5 più vicine)
     shopping: [],
     board: [],
     cleaning: {
@@ -27,6 +25,8 @@ let state = {
 };
 
 let cameraStream = null;
+let currentMainSection = "home";
+let pendingShowerBooking = null; // per conflitti
 
 // ---------- Persistenza ----------
 function loadState() {
@@ -34,28 +34,32 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Merge “sicuro” nel caso manchino campi
+      const pg = parsed.group || {};
       state = {
         ...state,
         ...parsed,
         user: { ...state.user, ...(parsed.user || {}) },
         group: {
           ...state.group,
-          ...(parsed.group || {}),
-          bookings: {
-            ...state.group.bookings,
-            ...((parsed.group && parsed.group.bookings) || {}),
-          },
+          ...pg,
           cleaning: {
             ...state.group.cleaning,
-            ...((parsed.group && parsed.group.cleaning) || {}),
+            ...(pg.cleaning || {}),
           },
+          laundryReservations: pg.laundryReservations || [],
+          showerBookings: pg.showerBookings || [],
+          shopping: pg.shopping || [],
+          board: pg.board || [],
         },
       };
     }
   } catch (e) {
     console.error("Errore caricando lo stato:", e);
   }
+
+  cleanupLaundryReservations();
+  cleanupShowerBookings();
+  saveState();
 }
 
 function saveState() {
@@ -108,7 +112,7 @@ function captureFrameFromVideo(video, maxSize = 256) {
   });
 }
 
-// ---------- Helpers ----------
+// ---------- Utility vari ----------
 function getUserFullName() {
   const { firstName, lastName } = state.user;
   const full = `${firstName || ""} ${lastName || ""}`.trim();
@@ -126,6 +130,96 @@ function showScreen(name) {
   } else {
     login.style.display = "none";
     main.style.display = "flex";
+  }
+}
+
+function showMainSection(section) {
+  currentMainSection = section;
+  const homeEl = document.getElementById("homeSections");
+  const laundryEl = document.getElementById("laundryScreen");
+  const showerEl = document.getElementById("showerScreen");
+  const cleaningEl = document.getElementById("cleaningScreen");
+  const shoppingEl = document.getElementById("shoppingScreen");
+
+  [homeEl, laundryEl, showerEl, cleaningEl, shoppingEl].forEach((el) => {
+    if (el) el.style.display = "none";
+  });
+
+  if (section === "home" && homeEl) {
+    homeEl.style.display = "flex";
+  } else if (section === "laundry" && laundryEl) {
+    laundryEl.style.display = "flex";
+    renderLaundryScreen();
+  } else if (section === "shower" && showerEl) {
+    showerEl.style.display = "flex";
+    renderShowerScreen();
+  } else if (section === "cleaning" && cleaningEl) {
+    cleaningEl.style.display = "flex";
+    renderCleaning();
+  } else if (section === "shopping" && shoppingEl) {
+    shoppingEl.style.display = "flex";
+    renderShopping();
+    renderBoard();
+  }
+}
+
+function formatDateTimeShort(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "Data non valida";
+  const day = d.toLocaleDateString("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+  const time = d.toLocaleTimeString("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${day} alle ${time}`;
+}
+
+// ---------- Pulizia automatica prenotazioni ----------
+function cleanupLaundryReservations() {
+  const now = Date.now();
+  const list = state.group.laundryReservations || [];
+  state.group.laundryReservations = list.filter((res) => {
+    const startMs = new Date(res.startTime).getTime();
+    if (!startMs) return false;
+    return now < startMs + 48 * MS_HOUR;
+  });
+}
+
+function cleanupShowerBookings() {
+  const now = Date.now();
+  const list = state.group.showerBookings || [];
+  state.group.showerBookings = list.filter((b) => {
+    const startMs = new Date(b.startTime).getTime();
+    if (!startMs) return false;
+    return now < startMs + MS_90_MIN;
+  });
+}
+
+// Intervallo [s1,e1) e [s2,e2) si sovrappongono?
+function intervalsOverlap(s1, e1, s2, e2) {
+  return s1 < e2 && s2 < e1;
+}
+
+function recomputeShowerConflicts() {
+  const list = state.group.showerBookings || [];
+  // reset
+  list.forEach((b) => (b.hasConflict = false));
+  for (let i = 0; i < list.length; i++) {
+    const bi = list[i];
+    const s1 = new Date(bi.startTime).getTime();
+    const e1 = s1 + MS_90_MIN;
+    for (let j = i + 1; j < list.length; j++) {
+      const bj = list[j];
+      const s2 = new Date(bj.startTime).getTime();
+      const e2 = s2 + MS_90_MIN;
+      if (intervalsOverlap(s1, e1, s2, e2)) {
+        bi.hasConflict = true;
+        bj.hasConflict = true;
+      }
+    }
   }
 }
 
@@ -157,7 +251,7 @@ function renderLoginForm() {
   renderLoginAvatar();
 }
 
-// ---------- Render: MAIN ----------
+// ---------- Render: TESTATA MAIN ----------
 function renderHeader() {
   const groupNameEl = document.getElementById("groupName");
   const userNameEl = document.getElementById("currentUserName");
@@ -172,34 +266,104 @@ function renderHeader() {
       avatarEl.textContent = "";
     } else {
       avatarEl.style.backgroundImage = "none";
-      const initials = (state.user.firstName && state.user.lastName)
-        ? (state.user.firstName[0] + state.user.lastName[0]).toUpperCase()
-        : "🙂";
+      const initials =
+        state.user.firstName && state.user.lastName
+          ? (state.user.firstName[0] + state.user.lastName[0]).toUpperCase()
+          : "🙂";
       avatarEl.textContent = initials;
     }
   }
 }
 
-function renderBookings() {
-  const mappings = [
-    { key: "washing", elId: "washingInfo" },
-    { key: "rack1", elId: "rack1Info" },
-    { key: "rack2", elId: "rack2Info" },
-    { key: "shower", elId: "showerInfo" },
-  ];
+// ---------- Render: LAVATRICE ----------
+function renderLaundryScreen() {
+  cleanupLaundryReservations();
+  saveState();
 
-  mappings.forEach(({ key, elId }) => {
-    const el = document.getElementById(elId);
-    const booking = state.group.bookings[key];
-    if (!el) return;
-    if (!booking) {
-      el.textContent = "Nessuno ha prenotato";
-    } else {
-      el.textContent = `${booking.userName} ha prenotato`;
-    }
-  });
+  const listEl = document.getElementById("laundryList");
+  const msgEl = document.getElementById("laundryStatusMessage");
+  if (!listEl) return;
+
+  listEl.innerHTML = "";
+  const list = state.group.laundryReservations || [];
+
+  if (list.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "Nessuna lavatrice prenotata.";
+    listEl.appendChild(li);
+  } else {
+    list
+      .slice()
+      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+      .forEach((res, index) => {
+        const li = document.createElement("li");
+        const start = new Date(res.startTime);
+        const end = new Date(start.getTime() + 48 * MS_HOUR);
+
+        const label = document.createElement("span");
+        label.textContent = `${res.userName} – ${formatDateTimeShort(
+          res.startTime
+        )} (fino al ${formatDateTimeShort(end.toISOString())}) – ${res.rackLabel}`;
+
+        li.appendChild(label);
+        listEl.appendChild(li);
+      });
+  }
+
+  if (msgEl && list.length < 2) {
+    msgEl.textContent = "";
+  }
 }
 
+// ---------- Render: DOCCIA ----------
+function renderShowerScreen() {
+  cleanupShowerBookings();
+  recomputeShowerConflicts();
+  saveState();
+
+  const container = document.getElementById("showerSlots");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const list = (state.group.showerBookings || [])
+    .slice()
+    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+  for (let i = 0; i < 5; i++) {
+    const slotDiv = document.createElement("div");
+    slotDiv.className = "slot-item";
+
+    const booking = list[i];
+    if (!booking) {
+      const title = document.createElement("div");
+      title.className = "slot-title";
+      title.textContent = `Slot ${i + 1}: Libero`;
+      slotDiv.appendChild(title);
+    } else {
+      const title = document.createElement("div");
+      title.className = "slot-title";
+      title.textContent = `Slot ${i + 1}: ${booking.userName}`;
+
+      const meta = document.createElement("div");
+      meta.className = "slot-meta";
+      meta.textContent = `Doccia il ${formatDateTimeShort(booking.startTime)} (90 min)`;
+
+      slotDiv.appendChild(title);
+      slotDiv.appendChild(meta);
+
+      if (booking.hasConflict) {
+        const warn = document.createElement("div");
+        warn.className = "slot-warning";
+        warn.innerHTML = "⚠️ Possibile boiler scarico (slot sovrapposto ad altre docce)";
+        slotDiv.appendChild(warn);
+      }
+    }
+
+    container.appendChild(slotDiv);
+  }
+}
+
+// ---------- Render: SPESA / LAVAGNA / PULIZIE ----------
 function renderShopping() {
   const listEl = document.getElementById("shoppingList");
   if (!listEl) return;
@@ -269,14 +433,6 @@ function renderCleaning() {
   });
 }
 
-function renderMain() {
-  renderHeader();
-  renderBookings();
-  renderShopping();
-  renderBoard();
-  renderCleaning();
-}
-
 // ---------- Eventi: LOGIN ----------
 function setupLoginEvents() {
   const cameraPanel = document.getElementById("cameraPanel");
@@ -324,7 +480,6 @@ function setupLoginEvents() {
         state.user.photoData = base64;
         saveState();
         renderLoginAvatar();
-        // Chiudi camera dopo lo scatto
         cameraPanel.classList.add("hidden");
         if (cameraStream) {
           cameraStream.getTracks().forEach((t) => t.stop());
@@ -369,42 +524,195 @@ function setupLoginEvents() {
 
       state.user.firstName = firstName;
       state.user.lastName = lastName;
-
-      // Non obbligo la foto: se non c'è, useremo le iniziali
       saveState();
 
-      // Passa alla schermata principale
-      renderMain();
+      renderHeader();
       showScreen("main");
+      showMainSection("home");
     });
   }
 }
 
 // ---------- Eventi: MAIN ----------
 function setupMainEvents() {
-  // Prenotazioni
-  document.querySelectorAll(".book-btn").forEach((btn) => {
+  // Navigazione sezioni
+  document.querySelectorAll(".section-tile").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const type = btn.dataset.type;
-      state.group.bookings[type] = {
+      const section = btn.dataset.section;
+      renderHeader();
+      showMainSection(section);
+    });
+  });
+
+  document.querySelectorAll(".back-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      renderHeader();
+      showMainSection("home");
+    });
+  });
+
+  // LAVATRICE
+  const laundryBtn = document.getElementById("laundryBookBtn");
+  if (laundryBtn) {
+    laundryBtn.addEventListener("click", () => {
+      const input = document.getElementById("laundryDateTime");
+      const msgEl = document.getElementById("laundryStatusMessage");
+      if (!input) return;
+
+      const value = input.value;
+      if (!value) {
+        alert("Seleziona data e ora della lavatrice.");
+        return;
+      }
+
+      const start = new Date(value);
+      if (isNaN(start.getTime())) {
+        alert("Data/ora non valida.");
+        return;
+      }
+
+      const now = new Date();
+      if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
+        if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
+          return;
+        }
+      }
+
+      cleanupLaundryReservations();
+      const list = state.group.laundryReservations || [];
+
+      if (list.length >= 2) {
+        // Non ci sono stendini liberi
+        const sorted = list
+          .slice()
+          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+        const first = sorted[0];
+        const firstEndMs = new Date(first.startTime).getTime() + 48 * MS_HOUR;
+        const diffMs = Math.max(0, firstEndMs - Date.now());
+        const hoursLeft = Math.ceil(diffMs / MS_HOUR);
+        const text = `Al momento non ci sono stendini liberi. Il primo si libera tra circa ${hoursLeft} ore (prenotato da ${first.userName}).`;
+        if (msgEl) msgEl.textContent = text;
+        alert(text);
+        return;
+      }
+
+      // Assegna stendino
+      let rackLabel = "Stendino 1";
+      if (list.length === 1) {
+        rackLabel = list[0].rackLabel === "Stendino 1" ? "Stendino 2" : "Stendino 2";
+      }
+
+      list.push({
+        id: Date.now(),
         userName: getUserFullName(),
-        time: new Date().toISOString(),
+        startTime: start.toISOString(),
+        rackLabel,
+      });
+
+      state.group.laundryReservations = list;
+      saveState();
+      if (msgEl) msgEl.textContent = "";
+      renderLaundryScreen();
+      alert(`Lavatrice prenotata con ${rackLabel} il ${formatDateTimeShort(start.toISOString())}.`);
+    });
+  }
+
+  // DOCCIA
+  const showerBtn = document.getElementById("showerBookBtn");
+  const conflictDialog = document.getElementById("showerConflictDialog");
+  const changeSlotBtn = document.getElementById("showerChangeSlotBtn");
+  const confirmSlotBtn = document.getElementById("showerConfirmSlotBtn");
+
+  function addShowerBooking(startIso, forceConflict) {
+    cleanupShowerBookings();
+    const list = state.group.showerBookings || [];
+    const newBooking = {
+      id: Date.now(),
+      userName: getUserFullName(),
+      startTime: startIso,
+      hasConflict: !!forceConflict,
+    };
+    list.push(newBooking);
+    state.group.showerBookings = list;
+    recomputeShowerConflicts();
+    saveState();
+    renderShowerScreen();
+  }
+
+  if (showerBtn) {
+    showerBtn.addEventListener("click", () => {
+      const input = document.getElementById("showerDateTime");
+      if (!input) return;
+      const value = input.value;
+      if (!value) {
+        alert("Seleziona data e ora della doccia.");
+        return;
+      }
+      const start = new Date(value);
+      if (isNaN(start.getTime())) {
+        alert("Data/ora non valida.");
+        return;
+      }
+
+      const now = new Date();
+      if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
+        if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
+          return;
+        }
+      }
+
+      cleanupShowerBookings();
+      const list = state.group.showerBookings || [];
+      let hasOverlap = false;
+      const startMs = start.getTime();
+      const endMs = startMs + MS_90_MIN;
+
+      for (const b of list) {
+        const s2 = new Date(b.startTime).getTime();
+        const e2 = s2 + MS_90_MIN;
+        if (intervalsOverlap(startMs, endMs, s2, e2)) {
+          hasOverlap = true;
+          break;
+        }
+      }
+
+      if (!hasOverlap) {
+        addShowerBooking(start.toISOString(), false);
+        alert(`Doccia prenotata il ${formatDateTimeShort(start.toISOString())}.`);
+        return;
+      }
+
+      // Conflitto: chiedi conferma
+      pendingShowerBooking = {
+        startTimeIso: start.toISOString(),
       };
-      saveState();
-      renderBookings();
+      if (conflictDialog) conflictDialog.classList.remove("hidden");
     });
-  });
+  }
 
-  document.querySelectorAll(".clear-booking-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const type = btn.dataset.type;
-      state.group.bookings[type] = null;
-      saveState();
-      renderBookings();
+  if (changeSlotBtn && conflictDialog) {
+    changeSlotBtn.addEventListener("click", () => {
+      pendingShowerBooking = null;
+      conflictDialog.classList.add("hidden");
     });
-  });
+  }
 
-  // Lista spesa
+  if (confirmSlotBtn && conflictDialog) {
+    confirmSlotBtn.addEventListener("click", () => {
+      if (pendingShowerBooking) {
+        addShowerBooking(pendingShowerBooking.startTimeIso, true);
+        alert(
+          `Doccia prenotata comunque il ${formatDateTimeShort(
+            pendingShowerBooking.startTimeIso
+          )}. Ricorda di controllare il boiler!`
+        );
+      }
+      pendingShowerBooking = null;
+      conflictDialog.classList.add("hidden");
+    });
+  }
+
+  // SPESA
   const shoppingForm = document.getElementById("shoppingForm");
   const shoppingInput = document.getElementById("shoppingInput");
   if (shoppingForm && shoppingInput) {
@@ -422,7 +730,7 @@ function setupMainEvents() {
     });
   }
 
-  // Lavagna
+  // LAVAGNA
   const boardForm = document.getElementById("boardForm");
   const boardInput = document.getElementById("boardInput");
   if (boardForm && boardInput) {
@@ -450,7 +758,7 @@ function setupMainEvents() {
     });
   }
 
-  // Pulizie
+  // PULIZIE
   const cleaningCheckboxes = document.querySelectorAll(
     ".cleaning-item input[type='checkbox']"
   );
@@ -467,20 +775,18 @@ function setupMainEvents() {
 loadState();
 
 window.addEventListener("DOMContentLoaded", () => {
-  // Setup eventi
   setupLoginEvents();
   setupMainEvents();
 
-  // Se l'utente è già registrato (nome presente), vai direttamente alla casa
   const hasUser =
     state.user &&
     typeof state.user.firstName === "string" &&
     state.user.firstName.trim().length > 0;
 
   if (hasUser) {
-    // assicura che header e resto siano aggiornati
-    renderMain();
+    renderHeader();
     showScreen("main");
+    showMainSection("home");
   } else {
     renderLoginForm();
     showScreen("login");
