@@ -79,82 +79,182 @@
       </header>
 
       <main>
-        <!-- Prenotazioni: lavatrice / stendini / doccia -->
-        <section class="card">
-          <h2>Prenotazioni rapide</h2>
-          <div class="bookings">
-            <div class="booking-item">
-              <h3>Lavatrice</h3>
-              <p id="washingInfo" class="booking-info">Nessuno ha prenotato</p>
-              <button data-type="washing" class="book-btn">Prenota per me</button>
-              <button data-type="washing" class="clear-booking-btn">Libera</button>
+        <!-- HOME: MENU SEZIONI -->
+        <div id="homeSections" class="home-sections">
+          <button class="section-tile" data-section="laundry">
+            <div class="section-icon">🧺</div>
+            <div class="section-text">
+              <h2>Lavatrice</h2>
+              <p>Prenota lavaggio e stendini</p>
             </div>
-            <div class="booking-item">
-              <h3>Stendino 1</h3>
-              <p id="rack1Info" class="booking-info">Nessuno ha prenotato</p>
-              <button data-type="rack1" class="book-btn">Prenota per me</button>
-              <button data-type="rack1" class="clear-booking-btn">Libera</button>
+          </button>
+
+          <button class="section-tile" data-section="shower">
+            <div class="section-icon">🚿</div>
+            <div class="section-text">
+              <h2>Doccia</h2>
+              <p>Prenota la doccia con controllo boiler</p>
             </div>
-            <div class="booking-item">
-              <h3>Stendino 2</h3>
-              <p id="rack2Info" class="booking-info">Nessuno ha prenotato</p>
-              <button data-type="rack2" class="book-btn">Prenota per me</button>
-              <button data-type="rack2" class="clear-booking-btn">Libera</button>
+          </button>
+
+          <button class="section-tile" data-section="cleaning">
+            <div class="section-icon">🧹</div>
+            <div class="section-text">
+              <h2>Pulizie</h2>
+              <p>Organizza le zone da pulire</p>
             </div>
-            <div class="booking-item">
-              <h3>Doccia</h3>
-              <p id="showerInfo" class="booking-info">Nessuno ha prenotato</p>
-              <button data-type="shower" class="book-btn">Prenota per me</button>
-              <button data-type="shower" class="clear-booking-btn">Libera</button>
+          </button>
+
+          <button class="section-tile" data-section="shopping">
+            <div class="section-icon">🛒</div>
+            <div class="section-text">
+              <h2>Lista della spesa</h2>
+              <p>Gestisci lista e lavagna di casa</p>
+            </div>
+          </button>
+        </div>
+
+        <!-- 🔵 SOTTO-SCHERMATA: LAVATRICE -->
+        <div id="laundryScreen" class="subscreen">
+          <div class="subheader">
+            <button class="back-btn" data-back="home">← Indietro</button>
+            <h2>Lavatrice & stendini</h2>
+          </div>
+
+          <section class="card">
+            <p class="note">
+              Puoi prenotare fino a <strong>2 lavatrici</strong> alla volta (2 stendini disponibili).
+              Ogni stendino rimane occupato per <strong>48 ore</strong> dalla data/ora di inizio lavatrice.
+            </p>
+
+            <div class="field-row">
+              <label for="laundryDateTime">Data e ora della lavatrice</label>
+              <input id="laundryDateTime" type="datetime-local" />
+            </div>
+            <button id="laundryBookBtn" type="button" class="primary-btn">
+              Prenota lavatrice
+            </button>
+
+            <p id="laundryStatusMessage" class="note"></p>
+          </section>
+
+          <section class="card">
+            <h3>Prenotazioni attive</h3>
+            <ul id="laundryList" class="booking-list"></ul>
+            <p class="note tiny">
+              Le prenotazioni scadono automaticamente dopo 48 ore dall'orario di inizio.
+            </p>
+          </section>
+        </div>
+
+        <!-- 🔵 SOTTO-SCHERMATA: DOCCIA -->
+        <div id="showerScreen" class="subscreen">
+          <div class="subheader">
+            <button class="back-btn" data-back="home">← Indietro</button>
+            <h2>Doccia & boiler</h2>
+          </div>
+
+          <section class="card">
+            <p class="note">
+              Ogni doccia occupa uno slot di <strong>90 minuti</strong> (tempo doccia + ricarica boiler).
+              Puoi prenotare un orario e verrà visualizzato negli slot.
+            </p>
+
+            <div class="field-row">
+              <label for="showerDateTime">Data e ora della doccia</label>
+              <input id="showerDateTime" type="datetime-local" />
+            </div>
+            <button id="showerBookBtn" type="button" class="primary-btn">
+              Prenota doccia
+            </button>
+          </section>
+
+          <section class="card">
+            <h3>Prossime 5 docce</h3>
+            <div id="showerSlots" class="slot-list"></div>
+            <p class="note tiny">
+              Gli slot scaduti (dopo 90 minuti dall'inizio) vengono rimossi automaticamente.
+            </p>
+          </section>
+
+          <!-- Dialogo conflitti slot -->
+          <div id="showerConflictDialog" class="dialog hidden">
+            <p>
+              ⚠️ <strong>Attenzione:</strong> lo slot che hai scelto si sovrappone a una doccia già prenotata.
+              Puoi scegliere un altro orario oppure prenotare comunque, facendo attenzione al boiler.
+            </p>
+            <div class="dialog-buttons">
+              <button id="showerChangeSlotBtn" type="button">Scegli un altro orario</button>
+              <button id="showerConfirmSlotBtn" type="button" class="primary-btn">
+                Prenota comunque
+              </button>
             </div>
           </div>
-        </section>
 
-        <!-- Lista della spesa -->
-        <section class="card">
-          <h2>Lista della spesa</h2>
-          <form id="shoppingForm" class="inline-form">
-            <input id="shoppingInput" type="text" placeholder="Aggiungi elemento..." required />
-            <button type="submit" class="primary-btn">+</button>
-          </form>
-          <ul id="shoppingList" class="shopping-list"></ul>
-        </section>
-
-        <!-- Lavagna messaggi -->
-        <section class="card">
-          <h2>Lavagna di casa</h2>
-          <form id="boardForm">
-            <textarea id="boardInput" rows="2" placeholder="Scrivi un pensiero o comunicazione..."></textarea>
-            <button type="submit" class="primary-btn">Pubblica</button>
-          </form>
-          <ul id="boardMessages" class="board-list"></ul>
-        </section>
-
-        <!-- Prenotazione pulizie -->
-        <section class="card">
-          <h2>Pulizie settimanali</h2>
-          <p class="note">
-            Seleziona le zone che ti prendi in carico questa settimana (salvato su questo dispositivo).
+          <p class="note tiny" style="margin-top: 8px; text-align: center;">
+            😅 <strong>Ricorda:</strong> controlla sempre il boiler prima di entrare in doccia,
+            per assicurarti che l'acqua sia davvero calda!
           </p>
-          <div class="cleaning-grid">
-            <label class="cleaning-item">
-              <input type="checkbox" data-zone="cucina" />
-              <span>Cucina</span>
-            </label>
-            <label class="cleaning-item">
-              <input type="checkbox" data-zone="sala" />
-              <span>Sala</span>
-            </label>
-            <label class="cleaning-item">
-              <input type="checkbox" data-zone="bagno_piccolo" />
-              <span>Bagno piccolo</span>
-            </label>
-            <label class="cleaning-item">
-              <input type="checkbox" data-zone="bagno_grande" />
-              <span>Bagno grande</span>
-            </label>
+        </div>
+
+        <!-- 🔵 SOTTO-SCHERMATA: PULIZIE -->
+        <div id="cleaningScreen" class="subscreen">
+          <div class="subheader">
+            <button class="back-btn" data-back="home">← Indietro</button>
+            <h2>Pulizie settimanali</h2>
           </div>
-        </section>
+
+          <section class="card">
+            <p class="note">
+              Seleziona le zone che ti prendi in carico questa settimana.
+              Le spunte sono salvate solo su questo dispositivo.
+            </p>
+            <div class="cleaning-grid">
+              <label class="cleaning-item">
+                <input type="checkbox" data-zone="cucina" />
+                <span>Cucina</span>
+              </label>
+              <label class="cleaning-item">
+                <input type="checkbox" data-zone="sala" />
+                <span>Sala</span>
+              </label>
+              <label class="cleaning-item">
+                <input type="checkbox" data-zone="bagno_piccolo" />
+                <span>Bagno piccolo</span>
+              </label>
+              <label class="cleaning-item">
+                <input type="checkbox" data-zone="bagno_grande" />
+                <span>Bagno grande</span>
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <!-- 🔵 SOTTO-SCHERMATA: LISTA SPESA + LAVAGNA -->
+        <div id="shoppingScreen" class="subscreen">
+          <div class="subheader">
+            <button class="back-btn" data-back="home">← Indietro</button>
+            <h2>Lista della spesa & lavagna</h2>
+          </div>
+
+          <section class="card">
+            <h2>Lista della spesa</h2>
+            <form id="shoppingForm" class="inline-form">
+              <input id="shoppingInput" type="text" placeholder="Aggiungi elemento..." required />
+              <button type="submit" class="primary-btn">+</button>
+            </form>
+            <ul id="shoppingList" class="shopping-list"></ul>
+          </section>
+
+          <section class="card">
+            <h2>Lavagna di casa</h2>
+            <form id="boardForm">
+              <textarea id="boardInput" rows="2" placeholder="Scrivi un pensiero o comunicazione..."></textarea>
+              <button type="submit" class="primary-btn">Pubblica</button>
+            </form>
+            <ul id="boardMessages" class="board-list"></ul>
+          </section>
+        </div>
       </main>
 
       <footer>
