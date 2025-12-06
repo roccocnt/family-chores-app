@@ -8,6 +8,7 @@
 </head>
 <body>
   <div class="app">
+
     <!-- 🔵 SCHERMATA 1: LOGIN / REGISTRAZIONE -->
     <div id="loginScreen" class="screen screen-login">
       <div class="login-card">
@@ -252,6 +253,59 @@
               <button type="submit" class="primary-btn">Pubblica</button>
             </form>
             <ul id="boardMessages" class="board-list"></ul>
+          </section>
+        </div>
+
+        <!-- 🔵 SOTTO-SCHERMATA: PROFILO UTENTE -->
+        <div id="profileScreen" class="subscreen">
+          <div class="subheader">
+            <button class="back-btn" data-back="home">← Indietro</button>
+            <h2>Profilo utente</h2>
+          </div>
+
+          <section class="card">
+            <div class="avatar-large-wrapper">
+              <div id="profileAvatarPreview" class="avatar-large">
+                <span>🙂</span>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="profileFirstName">Nome</label>
+              <input id="profileFirstName" type="text" />
+            </div>
+            <div class="field-row">
+              <label for="profileLastName">Cognome</label>
+              <input id="profileLastName" type="text" />
+            </div>
+
+            <div class="field-row">
+              <label>Foto profilo</label>
+              <div class="photo-buttons">
+                <button id="profileOpenCameraBtn" type="button">📷 Scatta nuova foto</button>
+                <label class="file-label">
+                  📁 Da galleria
+                  <input id="profilePhotoFileInput" type="file" accept="image/*" />
+                </label>
+              </div>
+            </div>
+
+            <!-- Pannello fotocamera profilo -->
+            <div id="profileCameraPanel" class="camera-panel hidden">
+              <video id="profileCameraVideo" autoplay playsinline></video>
+              <div class="camera-buttons">
+                <button id="profileTakePhotoBtn" type="button">📸 Scatta</button>
+                <button id="profileCloseCameraBtn" type="button">Chiudi</button>
+              </div>
+            </div>
+
+            <button id="profileSaveBtn" type="button" class="primary-btn">
+              Salva modifiche
+            </button>
+
+            <p class="note tiny">
+              Le modifiche valgono solo su questo dispositivo. Le prenotazioni future useranno il nuovo nome e la nuova foto.
+            </p>
           </section>
         </div>
       </main>
