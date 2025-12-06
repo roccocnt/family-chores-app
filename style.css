@@ -321,14 +321,11 @@ main {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .booking-list li,
 .shopping-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   border-radius: 8px;
   border: 1px solid #e5e5ea;
   padding: 6px 8px;
@@ -336,9 +333,34 @@ main {
   background: #f9f9ff;
 }
 
-.booking-list li span,
-.shopping-list li span {
-  flex: 1;
+/* Riga prenotazione con avatar */
+
+.booking-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.booking-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+}
+
+/* Avatar piccolo (prenotazioni & doccia) */
+
+.small-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  overflow: hidden;
 }
 
 /* Inline form */
@@ -407,12 +429,21 @@ main {
 .slot-item {
   border-radius: 8px;
   border: 1px solid #e5e5ea;
-  padding: 6px 8px;
+  padding: 8px 10px;
   background: #f9f9ff;
   font-size: 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+/* intestazione slot: avatar + titolo */
+
+.slot-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
 }
 
 .slot-title {
