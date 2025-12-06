@@ -1,5 +1,5 @@
 // Stato globale salvato in localStorage (solo su questo dispositivo)
-const STORAGE_KEY = "montevecchio66_app_v2";
+const STORAGE_KEY = "montevecchio66_app_v3";
 const MS_HOUR = 60 * 60 * 1000;
 const MS_90_MIN = 90 * 60 * 1000;
 
@@ -177,6 +177,23 @@ function formatDateTimeShort(iso) {
   return `${day} alle ${time}`;
 }
 
+// Crea un avatar piccolo per l'utente corrente
+function createUserSmallAvatar() {
+  const div = document.createElement("div");
+  div.className = "small-avatar";
+  if (state.user.photoData) {
+    div.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
+    div.textContent = "";
+  } else {
+    const initials =
+      state.user.firstName && state.user.lastName
+        ? (state.user.firstName[0] + state.user.lastName[0]).toUpperCase()
+        : "🙂";
+    div.textContent = initials;
+  }
+  return div;
+}
+
 // ---------- Pulizia automatica prenotazioni ----------
 function cleanupLaundryReservations() {
   const now = Date.now();
@@ -295,17 +312,37 @@ function renderLaundryScreen() {
     list
       .slice()
       .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-      .forEach((res, index) => {
+      .forEach((res) => {
         const li = document.createElement("li");
+
+        const row = document.createElement("div");
+        row.className = "booking-row";
+
+        const avatar = createUserSmallAvatar();
+        const textBox = document.createElement("div");
+        textBox.className = "booking-text";
+
         const start = new Date(res.startTime);
         const end = new Date(start.getTime() + 48 * MS_HOUR);
 
-        const label = document.createElement("span");
-        label.textContent = `${res.userName} – ${formatDateTimeShort(
-          res.startTime
-        )} (fino al ${formatDateTimeShort(end.toISOString())}) – ${res.rackLabel}`;
+        const line1 = document.createElement("div");
+        line1.textContent = res.userName;
 
-        li.appendChild(label);
+        const line2 = document.createElement("div");
+        line2.textContent = `${formatDateTimeShort(
+          res.startTime
+        )} → fino al ${formatDateTimeShort(end.toISOString())}`;
+
+        const line3 = document.createElement("div");
+        line3.textContent = res.rackLabel;
+
+        textBox.appendChild(line1);
+        textBox.appendChild(line2);
+        textBox.appendChild(line3);
+
+        row.appendChild(avatar);
+        row.appendChild(textBox);
+        li.appendChild(row);
         listEl.appendChild(li);
       });
   }
@@ -340,15 +377,22 @@ function renderShowerScreen() {
       title.textContent = `Slot ${i + 1}: Libero`;
       slotDiv.appendChild(title);
     } else {
+      const header = document.createElement("div");
+      header.className = "slot-header";
+
+      const avatar = createUserSmallAvatar();
       const title = document.createElement("div");
       title.className = "slot-title";
       title.textContent = `Slot ${i + 1}: ${booking.userName}`;
+
+      header.appendChild(avatar);
+      header.appendChild(title);
 
       const meta = document.createElement("div");
       meta.className = "slot-meta";
       meta.textContent = `Doccia il ${formatDateTimeShort(booking.startTime)} (90 min)`;
 
-      slotDiv.appendChild(title);
+      slotDiv.appendChild(header);
       slotDiv.appendChild(meta);
 
       if (booking.hasConflict) {
