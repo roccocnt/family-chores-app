@@ -140,8 +140,9 @@ function showMainSection(section) {
   const showerEl = document.getElementById("showerScreen");
   const cleaningEl = document.getElementById("cleaningScreen");
   const shoppingEl = document.getElementById("shoppingScreen");
+  const profileEl = document.getElementById("profileScreen");
 
-  [homeEl, laundryEl, showerEl, cleaningEl, shoppingEl].forEach((el) => {
+  [homeEl, laundryEl, showerEl, cleaningEl, shoppingEl, profileEl].forEach((el) => {
     if (el) el.style.display = "none";
   });
 
@@ -160,6 +161,9 @@ function showMainSection(section) {
     shoppingEl.style.display = "flex";
     renderShopping();
     renderBoard();
+  } else if (section === "profile" && profileEl) {
+    profileEl.style.display = "flex";
+    renderProfileScreen();
   }
 }
 
@@ -266,6 +270,30 @@ function renderLoginForm() {
   if (firstInput) firstInput.value = state.user.firstName || "";
   if (lastInput) lastInput.value = state.user.lastName || "";
   renderLoginAvatar();
+}
+
+// ---------- Render: PROFILO ----------
+function renderProfileScreen() {
+  const firstInput = document.getElementById("profileFirstName");
+  const lastInput = document.getElementById("profileLastName");
+  const avatarEl = document.getElementById("profileAvatarPreview");
+
+  if (firstInput) firstInput.value = state.user.firstName || "";
+  if (lastInput) lastInput.value = state.user.lastName || "";
+
+  if (avatarEl) {
+    avatarEl.innerHTML = "";
+    if (state.user.photoData) {
+      avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
+      avatarEl.style.backgroundSize = "cover";
+      avatarEl.style.backgroundPosition = "center";
+    } else {
+      avatarEl.style.backgroundImage = "none";
+      const span = document.createElement("span");
+      span.textContent = "🙂";
+      avatarEl.appendChild(span);
+    }
+  }
 }
 
 // ---------- Render: TESTATA MAIN ----------
@@ -577,6 +605,110 @@ function setupLoginEvents() {
   }
 }
 
+// ---------- Eventi: PROFILO ----------
+function setupProfileEvents() {
+  const cameraPanel = document.getElementById("profileCameraPanel");
+  const video = document.getElementById("profileCameraVideo");
+  const openCameraBtn = document.getElementById("profileOpenCameraBtn");
+  const closeCameraBtn = document.getElementById("profileCloseCameraBtn");
+  const takePhotoBtn = document.getElementById("profileTakePhotoBtn");
+  const fileInput = document.getElementById("profilePhotoFileInput");
+  const saveBtn = document.getElementById("profileSaveBtn");
+
+  // Apri fotocamera profilo
+  if (openCameraBtn && cameraPanel && video) {
+    openCameraBtn.addEventListener("click", async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("La fotocamera non è supportata da questo browser. Usa la galleria.");
+        return;
+      }
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = cameraStream;
+        cameraPanel.classList.remove("hidden");
+      } catch (e) {
+        console.error(e);
+        alert("Impossibile accedere alla fotocamera. Controlla i permessi.");
+      }
+    });
+  }
+
+  // Chiudi fotocamera profilo
+  if (closeCameraBtn && cameraPanel) {
+    closeCameraBtn.addEventListener("click", () => {
+      cameraPanel.classList.add("hidden");
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((t) => t.stop());
+        cameraStream = null;
+      }
+    });
+  }
+
+  // Scatta foto profilo
+  if (takePhotoBtn && video && cameraPanel) {
+    takePhotoBtn.addEventListener("click", async () => {
+      try {
+        const base64 = await captureFrameFromVideo(video);
+        state.user.photoData = base64;
+        saveState();
+        renderProfileScreen();
+        renderHeader();
+        renderLaundryScreen();
+        renderShowerScreen();
+        cameraPanel.classList.add("hidden");
+        if (cameraStream) {
+          cameraStream.getTracks().forEach((t) => t.stop());
+          cameraStream = null;
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Errore nello scattare la foto. Riprova.");
+      }
+    });
+  }
+
+  // Carica da galleria profilo
+  if (fileInput) {
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      try {
+        const base64 = await readImageFileAsBase64Thumbnail(file);
+        state.user.photoData = base64;
+        saveState();
+        renderProfileScreen();
+        renderHeader();
+        renderLaundryScreen();
+        renderShowerScreen();
+      } catch (e) {
+        console.error(e);
+        alert("Errore nel caricare la foto dalla galleria.");
+      }
+    });
+  }
+
+  // Salva nome/cognome
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      const firstInput = document.getElementById("profileFirstName");
+      const lastInput = document.getElementById("profileLastName");
+      const firstName = (firstInput && firstInput.value.trim()) || "";
+      const lastName = (lastInput && lastInput.value.trim()) || "";
+
+      if (!firstName || !lastName) {
+        alert("Inserisci sia nome che cognome.");
+        return;
+      }
+
+      state.user.firstName = firstName;
+      state.user.lastName = lastName;
+      saveState();
+      renderHeader();
+      alert("Profilo aggiornato!");
+    });
+  }
+}
+
 // ---------- Eventi: MAIN ----------
 function setupMainEvents() {
   // Navigazione sezioni
@@ -593,6 +725,18 @@ function setupMainEvents() {
       renderHeader();
       showMainSection("home");
     });
+  });
+
+  // Clic su avatar o nome → profilo
+  const userNameEl = document.getElementById("currentUserName");
+  const userAvatarEl = document.getElementById("currentUserAvatar");
+  [userNameEl, userAvatarEl].forEach((el) => {
+    if (el) {
+      el.addEventListener("click", () => {
+        renderProfileScreen();
+        showMainSection("profile");
+      });
+    }
   });
 
   // LAVATRICE
@@ -821,6 +965,7 @@ loadState();
 window.addEventListener("DOMContentLoaded", () => {
   setupLoginEvents();
   setupMainEvents();
+  setupProfileEvents();
 
   const hasUser =
     state.user &&
