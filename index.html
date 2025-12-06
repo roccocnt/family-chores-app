@@ -79,7 +79,7 @@
       </header>
 
       <main>
-        <!-- HOME: MENU SEZIONI -->
+        <!-- 🏠 HOME: MENU SEZIONI + LAVAGNA -->
         <div id="homeSections" class="home-sections">
           <button class="section-tile" data-section="laundry">
             <div class="section-icon">🧺</div>
@@ -109,9 +109,31 @@
             <div class="section-icon">🛒</div>
             <div class="section-text">
               <h2>Lista della spesa</h2>
-              <p>Gestisci lista e lavagna di casa</p>
+              <p>Checklist condivisa</p>
             </div>
           </button>
+
+          <!-- 🧽 LAVAGNA DI CASA IN HOME -->
+          <section class="card blackboard-card">
+            <h3 style="margin-top:0;margin-bottom:6px;font-size:0.9rem;">Lavagna di casa</h3>
+            <div id="homeBlackboard" class="blackboard">
+              <div id="homeBlackboardText" class="blackboard-text blackboard-placeholder">
+                Tocca per scrivere un pensiero di casa
+              </div>
+              <div id="homeBlackboardAuthor" class="blackboard-author"></div>
+            </div>
+          </section>
+
+          <!-- Dialogo per scrivere sulla lavagna -->
+          <div id="blackboardDialog" class="dialog hidden">
+            <p>Scrivi un pensiero da mostrare sulla lavagna:</p>
+            <textarea id="blackboardInput" rows="3"
+              style="width: 100%; border-radius: 8px; border: 1px solid #ccc; padding: 6px;"></textarea>
+            <div class="dialog-buttons">
+              <button id="blackboardCancelBtn" type="button">Annulla</button>
+              <button id="blackboardSaveBtn" type="button" class="primary-btn">Scrivi</button>
+            </div>
+          </div>
         </div>
 
         <!-- 🔵 SOTTO-SCHERMATA: LAVATRICE -->
@@ -206,53 +228,80 @@
 
           <section class="card">
             <p class="note">
-              Seleziona le zone che ti prendi in carico questa settimana.
-              Le spunte sono salvate solo su questo dispositivo.
+              Clicca sulla zona che vuoi pulire questa settimana. Ogni zona mostra chi se la è presa in carico.
+              Le assegnazioni si azzerano automaticamente quando inizia una nuova settimana.
             </p>
-            <div class="cleaning-grid">
-              <label class="cleaning-item">
-                <input type="checkbox" data-zone="cucina" />
-                <span>Cucina</span>
-              </label>
-              <label class="cleaning-item">
-                <input type="checkbox" data-zone="sala" />
-                <span>Sala</span>
-              </label>
-              <label class="cleaning-item">
-                <input type="checkbox" data-zone="bagno_piccolo" />
-                <span>Bagno piccolo</span>
-              </label>
-              <label class="cleaning-item">
-                <input type="checkbox" data-zone="bagno_grande" />
-                <span>Bagno grande</span>
-              </label>
+
+            <div class="cleaning-zones">
+              <button class="cleaning-zone-row" data-zone="bagno_piccolo">
+                <div class="cleaning-zone-label">Bagno piccolo</div>
+                <div class="cleaning-zone-assignee" id="cleaning-assignee-bagno_piccolo"></div>
+              </button>
+              <button class="cleaning-zone-row" data-zone="bagno_grande">
+                <div class="cleaning-zone-label">Bagno grande</div>
+                <div class="cleaning-zone-assignee" id="cleaning-assignee-bagno_grande"></div>
+              </button>
+              <button class="cleaning-zone-row" data-zone="sala">
+                <div class="cleaning-zone-label">Sala</div>
+                <div class="cleaning-zone-assignee" id="cleaning-assignee-sala"></div>
+              </button>
+              <button class="cleaning-zone-row" data-zone="cucina">
+                <div class="cleaning-zone-label">Cucina</div>
+                <div class="cleaning-zone-assignee" id="cleaning-assignee-cucina"></div>
+              </button>
+            </div>
+
+            <p class="note tiny">
+              Le zone si resettano automaticamente all'inizio di una nuova settimana (con salvataggio nello storico).
+            </p>
+          </section>
+
+          <section class="card">
+            <h3>Storico pulizie</h3>
+            <p class="note tiny">
+              Ultimi che hanno pulito ogni zona (il più recente appare per primo).
+            </p>
+
+            <div class="cleaning-history">
+              <div class="cleaning-history-row">
+                <div class="cleaning-history-title">Bagno piccolo</div>
+                <div class="history-avatars" id="history-bagno_piccolo"></div>
+              </div>
+              <div class="cleaning-history-row">
+                <div class="cleaning-history-title">Bagno grande</div>
+                <div class="history-avatars" id="history-bagno_grande"></div>
+              </div>
+              <div class="cleaning-history-row">
+                <div class="cleaning-history-title">Sala</div>
+                <div class="history-avatars" id="history-sala"></div>
+              </div>
+              <div class="cleaning-history-row">
+                <div class="cleaning-history-title">Cucina</div>
+                <div class="history-avatars" id="history-cucina"></div>
+              </div>
             </div>
           </section>
         </div>
 
-        <!-- 🔵 SOTTO-SCHERMATA: LISTA SPESA + LAVAGNA -->
+        <!-- 🔵 SOTTO-SCHERMATA: LISTA SPESA -->
         <div id="shoppingScreen" class="subscreen">
           <div class="subheader">
             <button class="back-btn" data-back="home">← Indietro</button>
-            <h2>Lista della spesa & lavagna</h2>
+            <h2>Lista della spesa</h2>
           </div>
 
           <section class="card">
-            <h2>Lista della spesa</h2>
-            <form id="shoppingForm" class="inline-form">
-              <input id="shoppingInput" type="text" placeholder="Aggiungi elemento..." required />
+            <h2>Checklist condivisa</h2>
+            <ul id="shoppingList" class="shopping-list"></ul>
+
+            <form id="shoppingAddForm" class="inline-form">
+              <input id="shoppingAddInput" type="text" placeholder="Aggiungi elemento..." />
               <button type="submit" class="primary-btn">+</button>
             </form>
-            <ul id="shoppingList" class="shopping-list"></ul>
-          </section>
 
-          <section class="card">
-            <h2>Lavagna di casa</h2>
-            <form id="boardForm">
-              <textarea id="boardInput" rows="2" placeholder="Scrivi un pensiero o comunicazione..."></textarea>
-              <button type="submit" class="primary-btn">Pubblica</button>
-            </form>
-            <ul id="boardMessages" class="board-list"></ul>
+            <p class="note tiny">
+              Spunta ciò che manca. Puoi aggiungere nuovi elementi con il pulsante "+".
+            </p>
           </section>
         </div>
 
