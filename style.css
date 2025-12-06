@@ -17,6 +17,177 @@ body {
   flex-direction: column;
 }
 
+/* Schermi */
+
+.screen {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.screen-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #f5f7ff, #fef4ff);
+}
+
+.screen-main {
+  display: none; /* verrà messo a flex da JS */
+  flex-direction: column;
+}
+
+/* Login card */
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e5ea;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  padding: 16px 16px 12px;
+}
+
+.login-card h1 {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.avatar-large-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 8px;
+}
+
+.avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid #007aff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f2f2f7;
+}
+
+.avatar-large span {
+  font-size: 2.2rem;
+}
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.field-row label {
+  font-size: 0.8rem;
+  color: #555;
+}
+
+input[type="text"],
+textarea {
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.photo-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button,
+.file-label {
+  border-radius: 999px;
+  border: none;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+button {
+  background: #e5e5ea;
+}
+
+button:active,
+.file-label:active {
+  opacity: 0.8;
+}
+
+.primary-btn {
+  background: #007aff;
+  color: #fff;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.file-label {
+  background: #e5e5ea;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.file-label input {
+  display: none;
+}
+
+.note {
+  font-size: 0.75rem;
+  color: #777;
+}
+
+.note.tiny {
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* Pannello fotocamera */
+
+.camera-panel {
+  margin: 8px 0;
+  border-radius: 12px;
+  border: 1px solid #e5e5ea;
+  padding: 8px;
+  background: #f9fafb;
+}
+
+.camera-panel.hidden {
+  display: none;
+}
+
+.camera-panel video {
+  width: 100%;
+  border-radius: 8px;
+  background: #000;
+}
+
+.camera-buttons {
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Main screen */
+
 .topbar {
   padding: 12px 16px;
   border-bottom: 1px solid #ddd;
@@ -30,12 +201,6 @@ body {
 .topbar h1 {
   margin: 0;
   font-size: 1.1rem;
-}
-
-.subtitle {
-  margin: 2px 0 0;
-  font-size: 0.8rem;
-  color: #666;
 }
 
 .current-user {
@@ -52,7 +217,10 @@ body {
   align-items: center;
   justify-content: center;
   border: 1px solid #ddd;
-  font-size: 1.2rem;
+  font-size: 0.9rem;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
 }
 
 .user-name {
@@ -81,61 +249,7 @@ main {
   font-size: 1rem;
 }
 
-.field-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.field-row label {
-  font-size: 0.8rem;
-  color: #555;
-}
-
-input[type="text"],
-textarea {
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  padding: 8px;
-  font-size: 0.9rem;
-  width: 100%;
-}
-
-textarea {
-  resize: vertical;
-}
-
-.primary-btn,
-button {
-  border-radius: 999px;
-  border: none;
-  padding: 8px 12px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.primary-btn {
-  background: #007aff;
-  color: #fff;
-}
-
-.primary-btn:active {
-  opacity: 0.8;
-}
-
-button {
-  background: #e5e5ea;
-}
-
-button:active {
-  opacity: 0.8;
-}
-
-.note {
-  font-size: 0.75rem;
-  color: #777;
-}
+/* Prenotazioni */
 
 .bookings {
   display: grid;
@@ -162,6 +276,8 @@ button:active {
   font-size: 0.8rem;
   color: #555;
 }
+
+/* Spesa */
 
 .inline-form {
   display: flex;
@@ -201,6 +317,8 @@ button:active {
   font-size: 0.75rem;
 }
 
+/* Lavagna */
+
 .board-list {
   list-style: none;
   padding: 0;
@@ -224,6 +342,8 @@ button:active {
   margin-bottom: 2px;
 }
 
+/* Pulizie */
+
 .cleaning-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -239,6 +359,8 @@ button:active {
   border: 1px solid #e5e5ea;
   font-size: 0.85rem;
 }
+
+/* Footer */
 
 footer {
   padding: 8px 12px;
