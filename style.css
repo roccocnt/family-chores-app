@@ -17,7 +17,7 @@ body {
   flex-direction: column;
 }
 
-/* Schermi */
+/* Schermi principali */
 
 .screen {
   width: 100%;
@@ -33,7 +33,7 @@ body {
 }
 
 .screen-main {
-  display: none; /* verrà messo a flex da JS */
+  display: none;
   flex-direction: column;
 }
 
@@ -95,7 +95,8 @@ body {
 }
 
 input[type="text"],
-textarea {
+textarea,
+input[type="datetime-local"] {
   border-radius: 8px;
   border: 1px solid #ccc;
   padding: 8px;
@@ -105,12 +106,6 @@ textarea {
 
 textarea {
   resize: vertical;
-}
-
-.photo-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 button,
@@ -134,8 +129,6 @@ button:active,
 .primary-btn {
   background: #007aff;
   color: #fff;
-  width: 100%;
-  margin-top: 8px;
 }
 
 .file-label {
@@ -147,6 +140,12 @@ button:active,
 
 .file-label input {
   display: none;
+}
+
+.photo-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .note {
@@ -233,8 +232,71 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
+
+/* Home: menu sezioni */
+
+.home-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e5ea;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.section-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #f2f2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  margin-left: 8px;
+}
+
+.section-text h2 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.section-text p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* Sottoschermate */
+
+.subscreen {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.subheader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.back-btn {
+  background: #e5e5ea;
+}
+
+/* Card comuni */
 
 .card {
   background: #ffffff;
@@ -244,51 +306,15 @@ main {
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.card h2 {
+.card h2,
+.card h3 {
   margin: 0 0 8px;
   font-size: 1rem;
 }
 
-/* Prenotazioni */
+/* Liste prenotazioni / spesa */
 
-.bookings {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.booking-item {
-  border-radius: 10px;
-  border: 1px solid #e5e5ea;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.booking-item h3 {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.booking-info {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #555;
-}
-
-/* Spesa */
-
-.inline-form {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.inline-form input {
-  flex: 1;
-}
-
+.booking-list,
 .shopping-list {
   list-style: none;
   padding: 0;
@@ -298,6 +324,7 @@ main {
   gap: 4px;
 }
 
+.booking-list li,
 .shopping-list li {
   display: flex;
   align-items: center;
@@ -309,12 +336,21 @@ main {
   background: #f9f9ff;
 }
 
+.booking-list li span,
 .shopping-list li span {
   flex: 1;
 }
 
-.shopping-list li button {
-  font-size: 0.75rem;
+/* Inline form */
+
+.inline-form {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.inline-form input {
+  flex: 1;
 }
 
 /* Lavagna */
@@ -358,6 +394,63 @@ main {
   border-radius: 8px;
   border: 1px solid #e5e5ea;
   font-size: 0.85rem;
+}
+
+/* Doccia: slot */
+
+.slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slot-item {
+  border-radius: 8px;
+  border: 1px solid #e5e5ea;
+  padding: 6px 8px;
+  background: #f9f9ff;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slot-title {
+  font-weight: 600;
+}
+
+.slot-meta {
+  font-size: 0.78rem;
+  color: #555;
+}
+
+.slot-warning {
+  font-size: 0.78rem;
+  color: #b75b00;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Dialogo doccia */
+
+.dialog {
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid #ffc857;
+  background: #fff8e6;
+  padding: 8px;
+  font-size: 0.8rem;
+}
+
+.dialog.hidden {
+  display: none;
+}
+
+.dialog-buttons {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 /* Footer */
