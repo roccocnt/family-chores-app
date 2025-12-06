@@ -23,7 +23,7 @@ let state = {
     },
   },
 };
-
+kkk=0;
 let cameraStream = null;
 let currentMainSection = "home";
 let pendingShowerBooking = null; // per conflitti
