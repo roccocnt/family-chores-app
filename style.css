@@ -67,8 +67,8 @@ body {
 }
 
 .avatar-large {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   border: 2px solid #007aff;
   display: flex;
@@ -79,7 +79,7 @@ body {
 }
 
 .avatar-large span {
-  font-size: 2.2rem;
+  font-size: 2.4rem;
 }
 
 .field-row {
@@ -220,11 +220,13 @@ button:active,
   background-size: cover;
   background-position: center;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .user-name {
   font-size: 0.8rem;
   max-width: 120px;
+  cursor: pointer;
 }
 
 main {
