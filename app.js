@@ -38,7 +38,7 @@ let state = {
     name: "Corso Montevecchio 66",
     laundryReservations: [], // max 2
     showerBookings: [], // lista docce (mostriamo sempre le 5 più vicine)
-    shopping: [], // legacy (non usato più)
+    shopping: [], // legacy
     shoppingChecklist: [], // nuova checklist
     board: [], // array di messaggi; usiamo solo il primo per la lavagna
     cleaningAssignments: {
@@ -325,7 +325,6 @@ function recomputeShowerConflicts() {
 // ---------- Settimana per le pulizie ----------
 function getCurrentWeekKey() {
   const now = new Date();
-  // Approssimazione settimana ISO (lunedì come inizio)
   const day = now.getDay(); // 0=dom, 1=lun
   const diffToMonday = (day + 6) % 7;
   const monday = new Date(now);
@@ -342,7 +341,6 @@ function getCurrentWeekKey() {
 function resetCleaningWeekIfNeeded() {
   const currentKey = getCurrentWeekKey();
   if (state.group.cleaningWeekKey && state.group.cleaningWeekKey !== currentKey) {
-    // Salva nel nuovo storico e svuota assegnazioni
     CLEANING_ZONES.forEach((zone) => {
       const ass = state.group.cleaningAssignments[zone];
       if (ass) {
@@ -563,9 +561,9 @@ function renderHomeBlackboard() {
     textEl.classList.add("blackboard-placeholder");
     authorEl.textContent = "";
   } else {
-    textEl.textContent = `"${msg.text}"`;
+    textEl.textContent = msg.text;
     textEl.classList.remove("blackboard-placeholder");
-    authorEl.textContent = `— ${msg.author}`;
+    authorEl.textContent = "";
   }
 }
 
@@ -619,7 +617,7 @@ function renderCleaning() {
     } else {
       assEl.style.color = "#000";
       const avatar = createSmallAvatarFromData(ass.photoData, ass.userName);
-      avatar.className = "small-avatar"; // ingrandiamo un po' per l'assegnato
+      avatar.className = "small-avatar";
       const nameSpan = document.createElement("span");
       nameSpan.textContent = ass.userName;
       assEl.appendChild(avatar);
@@ -1054,7 +1052,7 @@ function setupMainEvents() {
     });
   }
 
-  // PULIZIE - click sulle zone
+  // PULIZIE - click sulle zone (toggle + override)
   document.querySelectorAll(".cleaning-zone-row").forEach((btn) => {
     btn.addEventListener("click", () => {
       const zone = btn.dataset.zone;
@@ -1066,6 +1064,7 @@ function setupMainEvents() {
       const myPhoto = state.user.photoData;
 
       if (!ass) {
+        // Zona libera → prendila
         state.group.cleaningAssignments[zone] = {
           userName: myName,
           photoData: myPhoto,
@@ -1077,10 +1076,16 @@ function setupMainEvents() {
       }
 
       if (ass.userName === myName) {
-        alert("Hai già preso in carico questa zona per questa settimana.");
+        // Zona già mia → permetti di rimuovere la prenotazione
+        const okRemove = confirm("Vuoi rimuovere la tua prenotazione per questa zona?");
+        if (!okRemove) return;
+        state.group.cleaningAssignments[zone] = null;
+        saveState();
+        renderCleaning();
         return;
       }
 
+      // Zona di un altro → chiedi se vuoi prendertela
       const ok = confirm(
         `Questa zona è già presa in carico da ${ass.userName}.\nVuoi assegnarla a te?`
       );
