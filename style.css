@@ -5,18 +5,19 @@
 body {
   margin: 0;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top left, #f4f7ff, #fef9ff 40%, #f4f7ff 80%);
+  background: #e3e7f0;
 }
+
+/* Contenitore principale app con sfondo neumorfico */
 
 .app {
   max-width: 520px;
   margin: 0 auto;
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8f9ff 0%, #fdfcff 40%, #f6f7fb 100%);
+  background: #e3e7f0;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid rgba(255, 255, 255, 0.8);
-  border-right: 1px solid rgba(255, 255, 255, 0.8);
+  padding: 0;
 }
 
 /* Schermi principali */
@@ -31,6 +32,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  background: #e3e7f0;
 }
 
 .screen-main {
@@ -38,19 +40,47 @@ body {
   flex-direction: column;
 }
 
+/* Effetto neumorfico base */
+
+:root {
+  --neu-bg: #e3e7f0;
+  --neu-shadow-dark: #b9becb;
+  --neu-shadow-light: #ffffff;
+  --primary: #007aff;
+}
+
+/* Card in stile neumorphism */
+
+.card {
+  background: var(--neu-bg);
+  border-radius: 18px;
+  border: none;
+  padding: 12px;
+  box-shadow:
+    6px 6px 14px var(--neu-shadow-dark),
+    -6px -6px 14px var(--neu-shadow-light);
+}
+
+.card-elevated {
+  box-shadow:
+    8px 8px 18px var(--neu-shadow-dark),
+    -8px -8px 18px var(--neu-shadow-light);
+}
+
 /* Login card */
 
 .login-card {
   width: 100%;
   max-width: 420px;
-  border-radius: 18px;
-  padding: 18px 16px 14px;
+  border-radius: 22px;
+  padding: 20px 16px 16px;
 }
 
 .login-card h1 {
   margin: 0 0 4px;
   font-size: 1.3rem;
   font-weight: 600;
+  color: #1f2933;
 }
 
 .subtitle {
@@ -65,6 +95,8 @@ body {
   margin: 14px 0 10px;
 }
 
+/* Avatar grande neumorfico */
+
 .avatar-large {
   width: 96px;
   height: 96px;
@@ -73,16 +105,31 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: radial-gradient(circle at 30% 20%, #fdfbff, #e5edff);
-  border: 2px solid #ffffff;
+  background: var(--neu-bg);
+  border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow:
-    0 8px 18px rgba(15, 23, 42, 0.18),
+    8px 8px 18px var(--neu-shadow-dark),
+    -8px -8px 18px var(--neu-shadow-light),
     0 0 0 4px rgba(255, 255, 255, 0.9);
+  position: relative;
 }
 
 .avatar-large span {
   font-size: 2.4rem;
 }
+
+/* Anello colorato intorno all’avatar (ring) */
+
+.avatar-ring::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 3px var(--avatar-ring, rgba(0, 122, 255, 0.35));
+}
+
+/* Campi di input */
 
 .field-row {
   display: flex;
@@ -100,17 +147,23 @@ input[type="text"],
 textarea,
 input[type="datetime-local"] {
   border-radius: 12px;
-  border: 1px solid #d1d5e5;
+  border: none;
   padding: 9px 10px;
   font-size: 0.9rem;
   width: 100%;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: inset 0 1px 1px rgba(148, 163, 184, 0.15);
+  background: var(--neu-bg);
+  box-shadow:
+    inset 3px 3px 6px rgba(185, 190, 203, 0.7),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.9);
+  outline: none;
+  color: #1f2933;
 }
 
 textarea {
   resize: vertical;
 }
+
+/* Pulsanti stile iOS + neumorphism */
 
 button,
 .file-label {
@@ -126,21 +179,28 @@ button,
   font-weight: 500;
 }
 
-button {
-  background: #e5e7f3;
+/* Effetto tap comune */
+
+button,
+.file-label,
+.section-tile,
+.cleaning-zone-row,
+#homeBlackboard {
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s ease-out,
+    background-color 0.12s ease-out,
+    opacity 0.12s ease-out;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
+/* Primary button: blu iOS con effetto "pill" */
 
 .primary-btn {
   background: linear-gradient(135deg, #0a84ff, #007aff);
   color: #ffffff;
   box-shadow:
-    0 8px 18px rgba(0, 122, 255, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.6);
+    4px 4px 10px rgba(0, 122, 255, 0.35),
+    -2px -2px 6px rgba(255, 255, 255, 0.9);
 }
 
 .primary-btn-full {
@@ -148,29 +208,36 @@ button:disabled {
   margin-top: 6px;
 }
 
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  box-shadow:
-    0 4px 12px rgba(15, 23, 42, 0.06),
-    0 0 0 1px rgba(255, 255, 255, 0.6);
-  color: #374151;
-}
+/* Secondary button: neumorfico chiaro */
 
+.btn-secondary,
 .file-label {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: var(--neu-bg);
   box-shadow:
-    0 4px 12px rgba(15, 23, 42, 0.06),
-    0 0 0 1px rgba(255, 255, 255, 0.6);
+    4px 4px 10px var(--neu-shadow-dark),
+    -4px -4px 10px var(--neu-shadow-light);
   color: #374151;
 }
 
 .file-label input {
   display: none;
 }
+
+/* Effetto pressione */
+
+button:active,
+.file-label:active,
+.section-tile:active,
+.cleaning-zone-row:active,
+#homeBlackboard:active {
+  transform: scale(0.97) translateY(1px);
+  box-shadow:
+    inset 3px 3px 6px rgba(185, 190, 203, 0.8),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.9);
+  opacity: 0.96;
+}
+
+/* Foto / note */
 
 .photo-buttons {
   display: flex;
@@ -188,12 +255,16 @@ button:disabled {
   text-align: center;
 }
 
-/* Pannello fotocamera */
+/* Pannello fotocamera (leggermente incavato) */
 
 .camera-panel {
   margin: 8px 0;
   border-radius: 14px;
   padding: 8px;
+  background: var(--neu-bg);
+  box-shadow:
+    inset 3px 3px 7px rgba(185, 190, 203, 0.8),
+    inset -3px -3px 7px rgba(255, 255, 255, 0.95);
 }
 
 .camera-panel.hidden {
@@ -213,34 +284,28 @@ button:disabled {
   gap: 8px;
 }
 
-/* Effetto glass generico */
-
-.glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-}
-
-/* Main screen */
+/* Topbar neumorfica */
 
 .topbar {
   position: sticky;
   top: 0;
   z-index: 10;
   padding: 10px 16px 8px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  background: var(--neu-bg);
+  box-shadow:
+    0 6px 10px rgba(185, 190, 203, 0.7),
+    0 -6px 10px rgba(255, 255, 255, 0.9);
 }
 
 .topbar h1 {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 600;
-  color: #111827;
+  color: #1f2933;
 }
 
 .current-user {
@@ -249,31 +314,53 @@ button:disabled {
   gap: 6px;
 }
 
-/* Avatar */
+/* Avatar piccoli neumorfici */
 
 .avatar,
 .small-avatar,
-.history-avatar,
-.avatar-large {
+.history-avatar {
   position: relative;
-}
-
-.avatar {
-  display: inline-flex;
-  width: 34px;
-  height: 34px;
   border-radius: 999px;
+  background: var(--neu-bg);
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
   background-size: cover;
   background-position: center;
   overflow: hidden;
-  border: 2px solid #ffffff;
-  box-shadow:
-    0 6px 14px rgba(15, 23, 42, 0.18),
-    0 0 0 3px rgba(255, 255, 255, 0.9);
+  color: #1f2933;
 }
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  box-shadow:
+    4px 4px 10px var(--neu-shadow-dark),
+    -4px -4px 10px var(--neu-shadow-light),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.small-avatar {
+  width: 34px;
+  height: 34px;
+  box-shadow:
+    4px 4px 10px var(--neu-shadow-dark),
+    -4px -4px 10px var(--neu-shadow-light),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+}
+
+.history-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 0.65rem;
+  box-shadow:
+    3px 3px 7px var(--neu-shadow-dark),
+    -3px -3px 7px var(--neu-shadow-light),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+/* Anello colorato (ring) anche per avatar piccoli */
 
 .avatar-ring::after,
 .small-avatar::after,
@@ -283,39 +370,7 @@ button:disabled {
   inset: -2px;
   border-radius: inherit;
   pointer-events: none;
-  box-shadow: 0 0 0 3px var(--avatar-ring, rgba(0, 122, 255, 0.3));
-}
-
-.small-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 2px solid #ffffff;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  box-shadow:
-    0 4px 10px rgba(15, 23, 42, 0.16),
-    0 0 0 2px rgba(255, 255, 255, 0.9);
-}
-
-.history-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
-  border: 2px solid #ffffff;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.65rem;
-  box-shadow:
-    0 3px 8px rgba(15, 23, 42, 0.16),
-    0 0 0 2px rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 3px var(--avatar-ring, rgba(0, 122, 255, 0.35));
 }
 
 .user-name {
@@ -332,13 +387,15 @@ main {
   flex-direction: column;
 }
 
-/* Home: menu sezioni */
+/* Home: sezioni */
 
 .home-sections {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
+
+/* Tile sezioni in stile neumorfismo */
 
 .section-tile {
   display: flex;
@@ -348,6 +405,11 @@ main {
   text-align: left;
   padding: 10px 10px;
   border-radius: 18px;
+  background: var(--neu-bg);
+  box-shadow:
+    6px 6px 14px var(--neu-shadow-dark),
+    -6px -6px 14px var(--neu-shadow-light);
+  border: none;
 }
 
 .section-icon {
@@ -357,29 +419,15 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--neu-bg);
+  box-shadow:
+    inset 3px 3px 7px rgba(185, 190, 203, 0.8),
+    inset -3px -3px 7px rgba(255, 255, 255, 1);
 }
 
 .section-icon span.material-symbols-rounded {
   font-size: 26px;
-  color: #111827;
-}
-
-/* Pastel background per icone */
-
-.pastel-blue {
-  background: radial-gradient(circle at 30% 20%, #e0f0ff, #c4ddff);
-}
-
-.pastel-cyan {
-  background: radial-gradient(circle at 30% 20%, #dcf7ff, #c3ecff);
-}
-
-.pastel-green {
-  background: radial-gradient(circle at 30% 20%, #dff8e9, #c7f1d8);
-}
-
-.pastel-yellow {
-  background: radial-gradient(circle at 30% 20%, #fff5d6, #ffe7a8);
+  color: #1f2933;
 }
 
 .section-text h2 {
@@ -401,7 +449,7 @@ main {
   color: #9ca3af;
 }
 
-/* Sottoschermate: transizioni tipo app */
+/* Transizioni stile app tra viste */
 
 .view {
   opacity: 0;
@@ -438,31 +486,10 @@ main {
   color: #111827;
 }
 
+/* Back button neumorfico */
+
 .back-btn {
   font-size: 0.8rem;
-}
-
-/* Card comuni */
-
-.card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  border: 1px solid rgba(209, 213, 224, 0.8);
-  padding: 12px;
-}
-
-.card-elevated {
-  box-shadow:
-    0 12px 24px rgba(15, 23, 42, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.9);
-}
-
-.card h2,
-.card h3 {
-  margin: 0 0 8px;
-  font-size: 0.98rem;
-  font-weight: 600;
-  color: #111827;
 }
 
 /* Liste prenotazioni / spesa */
@@ -479,12 +506,14 @@ main {
 
 .booking-list li,
 .shopping-list li {
-  border-radius: 12px;
-  border: 1px solid rgba(209, 213, 224, 0.7);
+  border-radius: 14px;
+  border: none;
   padding: 7px 10px;
   font-size: 0.9rem;
-  background: linear-gradient(135deg, #f7f8ff, #fdfdff);
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+  background: var(--neu-bg);
+  box-shadow:
+    4px 4px 10px var(--neu-shadow-dark),
+    -4px -4px 10px var(--neu-shadow-light);
 }
 
 /* Riga prenotazione con avatar */
@@ -528,10 +557,12 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 9px 11px;
-  border-radius: 14px;
-  border: 1px solid rgba(209, 213, 224, 0.9);
-  background: linear-gradient(135deg, #f7faff, #f3f4ff);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  border-radius: 16px;
+  background: var(--neu-bg);
+  box-shadow:
+    5px 5px 12px var(--neu-shadow-dark),
+    -5px -5px 12px var(--neu-shadow-light);
+  border: none;
 }
 
 .cleaning-zone-label {
@@ -584,15 +615,17 @@ main {
 }
 
 .slot-item {
-  border-radius: 12px;
-  border: 1px solid rgba(209, 213, 224, 0.9);
+  border-radius: 14px;
+  border: none;
   padding: 8px 10px;
-  background: linear-gradient(135deg, #f7faff, #fefeff);
+  background: var(--neu-bg);
   font-size: 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+  box-shadow:
+    4px 4px 10px var(--neu-shadow-dark),
+    -4px -4px 10px var(--neu-shadow-light);
 }
 
 .slot-header {
@@ -620,7 +653,7 @@ main {
   gap: 4px;
 }
 
-/* Lavagna di casa (blackboard) */
+/* Lavagna di casa – restyling realistico, ma integrato */
 
 .blackboard-card {
   margin-top: 4px;
@@ -628,51 +661,43 @@ main {
 
 .blackboard {
   position: relative;
-  border-radius: 18px;
-  border: 12px solid transparent;
+  border-radius: 20px;
   padding: 16px;
-  background:
-    /* Cornice in legno con profondità */
-    linear-gradient(135deg, #7a4a24, #c1864b 40%, #5b3417 100%) padding-box,
-    radial-gradient(circle at 20% 0%, #fce1b8, #a86a33, #4d2810) border-box;
+  background: var(--neu-bg);
   box-shadow:
-    0 10px 20px rgba(15, 23, 42, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.5),
-    inset 0 0 4px rgba(15, 23, 42, 0.8);
+    8px 8px 16px var(--neu-shadow-dark),
+    -8px -8px 16px var(--neu-shadow-light);
 }
 
-/* Superficie lavagna */
+/* Cornice legno “fotografica” */
 
 .blackboard::before {
   content: "";
   position: absolute;
-  inset: 8px;
-  border-radius: 10px;
+  inset: 4px;
+  border-radius: 16px;
   background:
-    /* texture base lavagna */
-    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.04), transparent 55%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05), transparent 55%),
-    radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.03), transparent 55%),
-    linear-gradient(135deg, #222b22, #1b231c 45%, #151b15);
+    linear-gradient(135deg, #7a4a24, #c1864b 40%, #5b3417 100%);
   box-shadow:
-    inset 0 0 20px rgba(0, 0, 0, 0.7),
-    inset 0 0 4px rgba(255, 255, 255, 0.08);
+    inset 0 0 4px rgba(0, 0, 0, 0.5),
+    0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Polvere di gesso sui bordi */
+/* Superficie lavagna con texture + polvere gesso */
 
 .blackboard::after {
   content: "";
   position: absolute;
-  inset: 10px;
-  border-radius: 9px;
-  background-image:
-    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.1) 0, transparent 60%),
-    radial-gradient(circle at 80% 15%, rgba(255, 255, 255, 0.06) 0, transparent 65%),
-    radial-gradient(circle at 20% 85%, rgba(255, 255, 255, 0.08) 0, transparent 60%),
-    radial-gradient(circle at 60% 90%, rgba(255, 255, 255, 0.04) 0, transparent 70%);
-  opacity: 0.4;
-  pointer-events: none;
+  inset: 14px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.04), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05), transparent 55%),
+    radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.03), transparent 55%),
+    linear-gradient(135deg, #222b22, #1b241c 45%, #151b15);
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.7),
+    inset 0 0 4px rgba(255, 255, 255, 0.08);
 }
 
 .blackboard-text {
@@ -686,7 +711,6 @@ main {
   white-space: pre-line;
   letter-spacing: 0.03em;
   opacity: 0.95;
-  /* Effetto gesso: multipli text-shadow per dare spessore e granularità */
   text-shadow:
     0 0 1px rgba(255, 255, 255, 0.7),
     0 0 3px rgba(255, 255, 255, 0.5),
@@ -711,14 +735,18 @@ main {
   font-style: italic;
 }
 
-/* Dialogo generico (doccia + lavagna) */
+/* Dialoghi (doccia + lavagna) */
 
 .dialog {
   margin-top: 8px;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 10px;
   font-size: 0.8rem;
   color: #4b5563;
+  background: var(--neu-bg);
+  box-shadow:
+    5px 5px 12px var(--neu-shadow-dark),
+    -5px -5px 12px var(--neu-shadow-light);
 }
 
 .dialog.hidden {
@@ -735,11 +763,13 @@ main {
 
 footer {
   padding: 8px 12px 10px;
-  border-top: 1px solid rgba(209, 213, 224, 0.8);
   font-size: 0.75rem;
   text-align: center;
   color: #6b7280;
-  background: rgba(248, 250, 252, 0.9);
+  background: var(--neu-bg);
+  box-shadow:
+    -6px -6px 14px var(--neu-shadow-light),
+    6px 6px 14px var(--neu-shadow-dark);
 }
 
 /* Material Symbols */
@@ -752,25 +782,7 @@ footer {
     "opsz" 24;
 }
 
-/* Micro-animazioni (tap, apparizione) */
-
-.tap-animate {
-  transition:
-    transform 0.14s ease-out,
-    box-shadow 0.14s ease-out,
-    background-color 0.14s ease-out,
-    opacity 0.14s ease-out;
-}
-
-.tap-animate:active {
-  transform: scale(0.97) translateY(1px);
-  box-shadow:
-    0 6px 14px rgba(15, 23, 42, 0.18),
-    0 0 0 1px rgba(148, 163, 184, 0.4);
-  opacity: 0.96;
-}
-
-/* Animazione d'ingresso per elementi */
+/* Animazione di ingresso (fade + slide) */
 
 .anim-enter {
   animation: fadeSlideIn 0.18s ease-out;
