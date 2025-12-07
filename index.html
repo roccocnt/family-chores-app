@@ -4,6 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Corso Montevecchio 66</title>
+
+  <!-- Font rounded stile iOS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Material Symbols Rounded (icone) -->
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
+  />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,14 +23,14 @@
 
     <!-- 🔵 SCHERMATA 1: LOGIN / REGISTRAZIONE -->
     <div id="loginScreen" class="screen screen-login">
-      <div class="login-card">
+      <div class="login-card card-elevated anim-enter">
         <h1>Benvenuto 👋</h1>
         <p class="subtitle">
           Registrati per la casa <strong>Corso Montevecchio 66</strong>
         </p>
 
         <div class="avatar-large-wrapper">
-          <div id="loginAvatarPreview" class="avatar-large">
+          <div id="loginAvatarPreview" class="avatar-large avatar-ring">
             <span>🙂</span>
           </div>
         </div>
@@ -35,9 +47,13 @@
         <div class="field-row">
           <label>Foto profilo</label>
           <div class="photo-buttons">
-            <button id="openCameraBtn" type="button">📷 Scatta foto</button>
-            <label class="file-label">
-              📁 Da galleria
+            <button id="openCameraBtn" type="button" class="btn-secondary tap-animate">
+              <span class="material-symbols-rounded"> photo_camera </span>
+              Scatta foto
+            </button>
+            <label class="file-label btn-secondary tap-animate">
+              <span class="material-symbols-rounded"> image </span>
+              Da galleria
               <input id="photoFileInput" type="file" accept="image/*" />
             </label>
           </div>
@@ -47,15 +63,19 @@
         </div>
 
         <!-- Pannello fotocamera -->
-        <div id="cameraPanel" class="camera-panel hidden">
+        <div id="cameraPanel" class="camera-panel glass hidden">
           <video id="cameraVideo" autoplay playsinline></video>
           <div class="camera-buttons">
-            <button id="takePhotoBtn" type="button">📸 Scatta</button>
-            <button id="closeCameraBtn" type="button">Chiudi</button>
+            <button id="takePhotoBtn" type="button" class="primary-btn tap-animate">
+              📸 Scatta
+            </button>
+            <button id="closeCameraBtn" type="button" class="btn-secondary tap-animate">
+              Chiudi
+            </button>
           </div>
         </div>
 
-        <button id="registerBtn" class="primary-btn" type="button">
+        <button id="registerBtn" class="primary-btn primary-btn-full tap-animate" type="button">
           Entra in casa
         </button>
 
@@ -67,56 +87,68 @@
 
     <!-- 🟢 SCHERMATA 2: CASA / GRUPPO -->
     <div id="mainScreen" class="screen screen-main">
-      <header class="topbar">
+      <header class="topbar glass">
         <div>
           <h1 id="groupName">Corso Montevecchio 66</h1>
           <p class="subtitle">Gestione faccende di casa</p>
         </div>
-        <div class="current-user">
-          <span id="currentUserAvatar" class="avatar"></span>
+        <div class="current-user tap-animate">
+          <span id="currentUserAvatar" class="avatar avatar-ring"></span>
           <span id="currentUserName" class="user-name"></span>
         </div>
       </header>
 
       <main>
         <!-- 🏠 HOME: MENU SEZIONI + LAVAGNA -->
-        <div id="homeSections" class="home-sections">
-          <button class="section-tile" data-section="laundry">
-            <div class="section-icon">🧺</div>
+        <div id="homeSections" class="home-sections view">
+          <button class="section-tile card-elevated tap-animate" data-section="laundry">
+            <div class="section-icon pastel-blue">
+              <span class="material-symbols-rounded"> local_laundry_service </span>
+            </div>
             <div class="section-text">
               <h2>Lavatrice</h2>
               <p>Prenota lavaggio e stendini</p>
             </div>
+            <span class="section-chevron material-symbols-rounded"> chevron_right </span>
           </button>
 
-          <button class="section-tile" data-section="shower">
-            <div class="section-icon">🚿</div>
+          <button class="section-tile card-elevated tap-animate" data-section="shower">
+            <div class="section-icon pastel-cyan">
+              <span class="material-symbols-rounded"> shower </span>
+            </div>
             <div class="section-text">
               <h2>Doccia</h2>
-              <p>Prenota la doccia con controllo boiler</p>
+              <p>Slot boiler condivisi</p>
             </div>
+            <span class="section-chevron material-symbols-rounded"> chevron_right </span>
           </button>
 
-          <button class="section-tile" data-section="cleaning">
-            <div class="section-icon">🧹</div>
+          <button class="section-tile card-elevated tap-animate" data-section="cleaning">
+            <div class="section-icon pastel-green">
+              <span class="material-symbols-rounded"> cleaning_services </span>
+            </div>
             <div class="section-text">
               <h2>Pulizie</h2>
-              <p>Organizza le zone da pulire</p>
+              <p>Zone di casa settimanali</p>
             </div>
+            <span class="section-chevron material-symbols-rounded"> chevron_right </span>
           </button>
 
-          <button class="section-tile" data-section="shopping">
-            <div class="section-icon">🛒</div>
+          <button class="section-tile card-elevated tap-animate" data-section="shopping">
+            <div class="section-icon pastel-yellow">
+              <span class="material-symbols-rounded"> shopping_cart </span>
+            </div>
             <div class="section-text">
               <h2>Lista della spesa</h2>
               <p>Checklist condivisa</p>
             </div>
+            <span class="section-chevron material-symbols-rounded"> chevron_right </span>
           </button>
 
           <!-- 🧽 LAVAGNA DI CASA IN HOME -->
-          <section class="card blackboard-card">
+          <section class="card blackboard-card card-elevated anim-enter">
             <h3 style="margin-top:0;margin-bottom:6px;font-size:0.9rem;">Lavagna di casa</h3>
-            <div id="homeBlackboard" class="blackboard">
+            <div id="homeBlackboard" class="blackboard tap-animate">
               <div id="homeBlackboardText" class="blackboard-text blackboard-placeholder">
                 Tocca per scrivere un pensiero di casa
               </div>
@@ -125,25 +157,28 @@
           </section>
 
           <!-- Dialogo per scrivere sulla lavagna -->
-          <div id="blackboardDialog" class="dialog hidden">
+          <div id="blackboardDialog" class="dialog glass hidden">
             <p>Scrivi un pensiero da mostrare sulla lavagna:</p>
             <textarea id="blackboardInput" rows="3"
-              style="width: 100%; border-radius: 8px; border: 1px solid #ccc; padding: 6px;"></textarea>
+              style="width: 100%; border-radius: 12px; border: 1px solid #d0d0e5; padding: 8px;"></textarea>
             <div class="dialog-buttons">
-              <button id="blackboardCancelBtn" type="button">Annulla</button>
-              <button id="blackboardSaveBtn" type="button" class="primary-btn">Scrivi</button>
+              <button id="blackboardCancelBtn" type="button" class="btn-secondary tap-animate">Annulla</button>
+              <button id="blackboardSaveBtn" type="button" class="primary-btn tap-animate">Scrivi</button>
             </div>
           </div>
         </div>
 
         <!-- 🔵 SOTTO-SCHERMATA: LAVATRICE -->
-        <div id="laundryScreen" class="subscreen">
+        <div id="laundryScreen" class="subscreen view">
           <div class="subheader">
-            <button class="back-btn" data-back="home">← Indietro</button>
+            <button class="back-btn btn-secondary tap-animate" data-back="home">
+              <span class="material-symbols-rounded"> arrow_back_ios_new </span>
+              Indietro
+            </button>
             <h2>Lavatrice & stendini</h2>
           </div>
 
-          <section class="card">
+          <section class="card card-elevated anim-enter">
             <p class="note">
               Puoi prenotare fino a <strong>2 lavatrici</strong> alla volta (2 stendini disponibili).
               Ogni stendino rimane occupato per <strong>48 ore</strong> dalla data/ora di inizio lavatrice.
@@ -153,14 +188,14 @@
               <label for="laundryDateTime">Data e ora della lavatrice</label>
               <input id="laundryDateTime" type="datetime-local" />
             </div>
-            <button id="laundryBookBtn" type="button" class="primary-btn">
+            <button id="laundryBookBtn" type="button" class="primary-btn primary-btn-full tap-animate">
               Prenota lavatrice
             </button>
 
             <p id="laundryStatusMessage" class="note"></p>
           </section>
 
-          <section class="card">
+          <section class="card card-elevated anim-enter">
             <h3>Prenotazioni attive</h3>
             <ul id="laundryList" class="booking-list"></ul>
             <p class="note tiny">
@@ -170,13 +205,16 @@
         </div>
 
         <!-- 🔵 SOTTO-SCHERMATA: DOCCIA -->
-        <div id="showerScreen" class="subscreen">
+        <div id="showerScreen" class="subscreen view">
           <div class="subheader">
-            <button class="back-btn" data-back="home">← Indietro</button>
+            <button class="back-btn btn-secondary tap-animate" data-back="home">
+              <span class="material-symbols-rounded"> arrow_back_ios_new </span>
+              Indietro
+            </button>
             <h2>Doccia & boiler</h2>
           </div>
 
-          <section class="card">
+          <section class="card card-elevated anim-enter">
             <p class="note">
               Ogni doccia occupa uno slot di <strong>90 minuti</strong> (tempo doccia + ricarica boiler).
               Puoi prenotare un orario e verrà visualizzato negli slot.
@@ -186,12 +224,12 @@
               <label for="showerDateTime">Data e ora della doccia</label>
               <input id="showerDateTime" type="datetime-local" />
             </div>
-            <button id="showerBookBtn" type="button" class="primary-btn">
+            <button id="showerBookBtn" type="button" class="primary-btn primary-btn-full tap-animate">
               Prenota doccia
             </button>
           </section>
 
-          <section class="card">
+          <section class="card card-elevated anim-enter">
             <h3>Prossime 5 docce</h3>
             <div id="showerSlots" class="slot-list"></div>
             <p class="note tiny">
@@ -200,14 +238,16 @@
           </section>
 
           <!-- Dialogo conflitti slot -->
-          <div id="showerConflictDialog" class="dialog hidden">
+          <div id="showerConflictDialog" class="dialog glass hidden">
             <p>
               ⚠️ <strong>Attenzione:</strong> lo slot che hai scelto si sovrappone a una doccia già prenotata.
               Puoi scegliere un altro orario oppure prenotare comunque, facendo attenzione al boiler.
             </p>
             <div class="dialog-buttons">
-              <button id="showerChangeSlotBtn" type="button">Scegli un altro orario</button>
-              <button id="showerConfirmSlotBtn" type="button" class="primary-btn">
+              <button id="showerChangeSlotBtn" type="button" class="btn-secondary tap-animate">
+                Scegli un altro orario
+              </button>
+              <button id="showerConfirmSlotBtn" type="button" class="primary-btn tap-animate">
                 Prenota comunque
               </button>
             </div>
@@ -220,39 +260,42 @@
         </div>
 
         <!-- 🔵 SOTTO-SCHERMATA: PULIZIE -->
-        <div id="cleaningScreen" class="subscreen">
+        <div id="cleaningScreen" class="subscreen view">
           <div class="subheader">
-            <button class="back-btn" data-back="home">← Indietro</button>
+            <button class="back-btn btn-secondary tap-animate" data-back="home">
+              <span class="material-symbols-rounded"> arrow_back_ios_new </span>
+              Indietro
+            </button>
             <h2>Pulizie settimanali</h2>
           </div>
 
-          <section class="card">
+          <section class="card card-elevated anim-enter">
             <p class="note">
               Clicca sulla zona che vuoi pulire questa settimana. Ogni zona mostra chi se la è presa in carico.
               Le assegnazioni si azzerano automaticamente quando inizia una nuova settimana (e finiscono nello storico).
             </p>
 
             <div class="cleaning-zones">
-              <button class="cleaning-zone-row" data-zone="bagno_piccolo">
+              <button class="cleaning-zone-row tap-animate" data-zone="bagno_piccolo">
                 <div class="cleaning-zone-label">Bagno piccolo</div>
                 <div class="cleaning-zone-assignee" id="cleaning-assignee-bagno_piccolo"></div>
               </button>
-              <button class="cleaning-zone-row" data-zone="bagno_grande">
+              <button class="cleaning-zone-row tap-animate" data-zone="bagno_grande">
                 <div class="cleaning-zone-label">Bagno grande</div>
                 <div class="cleaning-zone-assignee" id="cleaning-assignee-bagno_grande"></div>
               </button>
-              <button class="cleaning-zone-row" data-zone="sala">
+              <button class="cleaning-zone-row tap-animate" data-zone="sala">
                 <div class="cleaning-zone-label">Sala</div>
                 <div class="cleaning-zone-assignee" id="cleaning-assignee-sala"></div>
               </button>
-              <button class="cleaning-zone-row" data-zone="cucina">
+              <button class="cleaning-zone-row tap-animate" data-zone="cucina">
                 <div class="cleaning-zone-label">Cucina</div>
                 <div class="cleaning-zone-assignee" id="cleaning-assignee-cucina"></div>
               </button>
             </div>
           </section>
 
-          <section class="card">
+          <section class="card card-elevated anim-enter">
             <h3>Storico pulizie</h3>
             <p class="note tiny">
               Ultimi che hanno pulito ogni zona (il più recente appare per primo).
@@ -280,19 +323,22 @@
         </div>
 
         <!-- 🔵 SOTTO-SCHERMATA: LISTA SPESA -->
-        <div id="shoppingScreen" class="subscreen">
+        <div id="shoppingScreen" class="subscreen view">
           <div class="subheader">
-            <button class="back-btn" data-back="home">← Indietro</button>
+            <button class="back-btn btn-secondary tap-animate" data-back="home">
+              <span class="material-symbols-rounded"> arrow_back_ios_new </span>
+              Indietro
+            </button>
             <h2>Lista della spesa</h2>
           </div>
 
-          <section class="card">
+          <section class="card card-elevated anim-enter">
             <h2>Checklist condivisa</h2>
             <ul id="shoppingList" class="shopping-list"></ul>
 
             <form id="shoppingAddForm" class="inline-form">
               <input id="shoppingAddInput" type="text" placeholder="Aggiungi elemento..." />
-              <button type="submit" class="primary-btn">+</button>
+              <button type="submit" class="primary-btn tap-animate">+</button>
             </form>
 
             <p class="note tiny">
@@ -302,15 +348,18 @@
         </div>
 
         <!-- 🔵 SOTTO-SCHERMATA: PROFILO UTENTE -->
-        <div id="profileScreen" class="subscreen">
+        <div id="profileScreen" class="subscreen view">
           <div class="subheader">
-            <button class="back-btn" data-back="home">← Indietro</button>
+            <button class="back-btn btn-secondary tap-animate" data-back="home">
+              <span class="material-symbols-rounded"> arrow_back_ios_new </span>
+              Indietro
+            </button>
             <h2>Profilo utente</h2>
           </div>
 
-          <section class="card">
+          <section class="card card-elevated anim-enter">
             <div class="avatar-large-wrapper">
-              <div id="profileAvatarPreview" class="avatar-large">
+              <div id="profileAvatarPreview" class="avatar-large avatar-ring">
                 <span>🙂</span>
               </div>
             </div>
@@ -327,24 +376,28 @@
             <div class="field-row">
               <label>Foto profilo</label>
               <div class="photo-buttons">
-                <button id="profileOpenCameraBtn" type="button">📷 Scatta nuova foto</button>
-                <label class="file-label">
-                  📁 Da galleria
+                <button id="profileOpenCameraBtn" type="button" class="btn-secondary tap-animate">
+                  <span class="material-symbols-rounded"> photo_camera </span>
+                  Scatta nuova foto
+                </button>
+                <label class="file-label btn-secondary tap-animate">
+                  <span class="material-symbols-rounded"> image </span>
+                  Da galleria
                   <input id="profilePhotoFileInput" type="file" accept="image/*" />
                 </label>
               </div>
             </div>
 
             <!-- Pannello fotocamera profilo -->
-            <div id="profileCameraPanel" class="camera-panel hidden">
+            <div id="profileCameraPanel" class="camera-panel glass hidden">
               <video id="profileCameraVideo" autoplay playsinline></video>
               <div class="camera-buttons">
-                <button id="profileTakePhotoBtn" type="button">📸 Scatta</button>
-                <button id="profileCloseCameraBtn" type="button">Chiudi</button>
+                <button id="profileTakePhotoBtn" type="button" class="primary-btn tap-animate">📸 Scatta</button>
+                <button id="profileCloseCameraBtn" type="button" class="btn-secondary tap-animate">Chiudi</button>
               </div>
             </div>
 
-            <button id="profileSaveBtn" type="button" class="primary-btn">
+            <button id="profileSaveBtn" type="button" class="primary-btn primary-btn-full tap-animate">
               Salva modifiche
             </button>
 
