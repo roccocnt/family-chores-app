@@ -1,5 +1,5 @@
 // Stato globale salvato in localStorage (solo su questo dispositivo)
-const STORAGE_KEY = "montevecchio66_app_v4";
+const STORAGE_KEY = "montevecchio66_app_v4_pastel";
 const MS_HOUR = 60 * 60 * 1000;
 const MS_90_MIN = 90 * 60 * 1000;
 
@@ -58,7 +58,7 @@ let state = {
 };
 
 let cameraStream = null;
-let currentMainSection = "home";
+let currentViewElement = null;
 let pendingShowerBooking = null; // per conflitti
 
 // ---------- Persistenza ----------
@@ -169,10 +169,22 @@ function captureFrameFromVideo(video, maxSize = 256) {
 }
 
 // ---------- Utility vari ----------
+
 function getUserFullName() {
   const { firstName, lastName } = state.user;
   const full = `${firstName || ""} ${lastName || ""}`.trim();
   return full || "Utente anonimo";
+}
+
+// Colore dell'anello avatar in base al nome (deterministico)
+function getAvatarRingColor(name) {
+  if (!name) return "rgba(0,122,255,0.35)";
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsla(${hue}, 70%, 60%, 0.55)`;
 }
 
 function showScreen(name) {
@@ -189,8 +201,8 @@ function showScreen(name) {
   }
 }
 
+// Transizione tra sezioni principali (home, laundry, shower, cleaning, shopping, profile)
 function showMainSection(section) {
-  currentMainSection = section;
   const homeEl = document.getElementById("homeSections");
   const laundryEl = document.getElementById("laundryScreen");
   const showerEl = document.getElementById("showerScreen");
@@ -198,28 +210,51 @@ function showMainSection(section) {
   const shoppingEl = document.getElementById("shoppingScreen");
   const profileEl = document.getElementById("profileScreen");
 
-  [homeEl, laundryEl, showerEl, cleaningEl, shoppingEl, profileEl].forEach((el) => {
-    if (el) el.style.display = "none";
+  const map = {
+    home: homeEl,
+    laundry: laundryEl,
+    shower: showerEl,
+    cleaning: cleaningEl,
+    shopping: shoppingEl,
+    profile: profileEl,
+  };
+
+  const newView = map[section];
+  if (!newView) return;
+
+  // Nascondi view corrente con fade-out
+  if (currentViewElement && currentViewElement !== newView) {
+    currentViewElement.classList.remove("view-active");
+    // dopo la durata della transizione CSS, nascondi
+    const oldRef = currentViewElement;
+    setTimeout(() => {
+      if (oldRef && oldRef !== newView) {
+        oldRef.style.display = "none";
+      }
+    }, 200);
+  }
+
+  // Mostra nuova view con fade-in / slide
+  newView.style.display = section === "home" ? "flex" : "flex";
+  requestAnimationFrame(() => {
+    newView.classList.add("view-active");
   });
 
-  if (section === "home" && homeEl) {
-    homeEl.style.display = "flex";
+  currentViewElement = newView;
+
+  // Rendi / aggiorna contenuti della sezione scelta
+  if (section === "home") {
     renderHomeBlackboard();
-  } else if (section === "laundry" && laundryEl) {
-    laundryEl.style.display = "flex";
+  } else if (section === "laundry") {
     renderLaundryScreen();
-  } else if (section === "shower" && showerEl) {
-    showerEl.style.display = "flex";
+  } else if (section === "shower") {
     renderShowerScreen();
-  } else if (section === "cleaning" && cleaningEl) {
-    cleaningEl.style.display = "flex";
+  } else if (section === "cleaning") {
     resetCleaningWeekIfNeeded();
     renderCleaning();
-  } else if (section === "shopping" && shoppingEl) {
-    shoppingEl.style.display = "flex";
+  } else if (section === "shopping") {
     renderShopping();
-  } else if (section === "profile" && profileEl) {
-    profileEl.style.display = "flex";
+  } else if (section === "profile") {
     renderProfileScreen();
   }
 }
@@ -238,10 +273,27 @@ function formatDateTimeShort(iso) {
   return `${day} alle ${time}`;
 }
 
+// Aggiunge una piccola animazione di ingresso (fade+slide) a elementi nuovi
+function applyEnterAnimation(el) {
+  if (!el) return;
+  el.classList.add("anim-enter");
+  el.addEventListener(
+    "animationend",
+    () => {
+      el.classList.remove("anim-enter");
+    },
+    { once: true }
+  );
+}
+
 // Avatar piccolo per l'utente corrente (prenotazioni lavatrice/doccia)
 function createUserSmallAvatar() {
   const div = document.createElement("div");
   div.className = "small-avatar";
+  const name = getUserFullName();
+  const color = getAvatarRingColor(name);
+  div.style.setProperty("--avatar-ring", color);
+
   if (state.user.photoData) {
     div.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
     div.textContent = "";
@@ -259,6 +311,9 @@ function createUserSmallAvatar() {
 function createSmallAvatarFromData(photoData, name) {
   const div = document.createElement("div");
   div.className = "history-avatar";
+  const color = getAvatarRingColor(name);
+  div.style.setProperty("--avatar-ring", color);
+
   if (photoData) {
     div.style.backgroundImage = `url(data:image/jpeg;base64,${photoData})`;
     div.textContent = "";
@@ -363,6 +418,8 @@ function renderLoginAvatar() {
   if (!avatarEl) return;
 
   avatarEl.innerHTML = "";
+  const color = getAvatarRingColor(getUserFullName());
+  avatarEl.style.setProperty("--avatar-ring", color);
 
   if (state.user.photoData) {
     avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
@@ -396,6 +453,8 @@ function renderProfileScreen() {
 
   if (avatarEl) {
     avatarEl.innerHTML = "";
+    const color = getAvatarRingColor(getUserFullName());
+    avatarEl.style.setProperty("--avatar-ring", color);
     if (state.user.photoData) {
       avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
       avatarEl.style.backgroundSize = "cover";
@@ -419,6 +478,9 @@ function renderHeader() {
   if (userNameEl) userNameEl.textContent = getUserFullName();
 
   if (avatarEl) {
+    const color = getAvatarRingColor(getUserFullName());
+    avatarEl.style.setProperty("--avatar-ring", color);
+
     if (state.user.photoData) {
       avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
       avatarEl.textContent = "";
@@ -448,6 +510,7 @@ function renderLaundryScreen() {
   if (list.length === 0) {
     const li = document.createElement("li");
     li.textContent = "Nessuna lavatrice prenotata.";
+    applyEnterAnimation(li);
     listEl.appendChild(li);
   } else {
     list
@@ -484,6 +547,7 @@ function renderLaundryScreen() {
         row.appendChild(avatar);
         row.appendChild(textBox);
         li.appendChild(row);
+        applyEnterAnimation(li);
         listEl.appendChild(li);
       });
   }
@@ -544,6 +608,7 @@ function renderShowerScreen() {
       }
     }
 
+    applyEnterAnimation(slotDiv);
     container.appendChild(slotDiv);
   }
 }
@@ -563,7 +628,7 @@ function renderHomeBlackboard() {
   } else {
     textEl.textContent = msg.text;
     textEl.classList.remove("blackboard-placeholder");
-    authorEl.textContent = "";
+    authorEl.textContent = ""; // niente nome autore come richiesto
   }
 }
 
@@ -597,6 +662,7 @@ function renderShopping() {
     label.appendChild(cb);
     label.appendChild(span);
     li.appendChild(label);
+    applyEnterAnimation(li);
     listEl.appendChild(li);
   });
 }
@@ -633,6 +699,7 @@ function renderCleaning() {
     const history = state.group.cleaningHistory[zone] || [];
     history.forEach((h) => {
       const avatar = createSmallAvatarFromData(h.photoData, h.userName);
+      applyEnterAnimation(avatar);
       container.appendChild(avatar);
     });
   });
