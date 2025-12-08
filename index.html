@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Corso Montevecchio 66</title>
- 
-  <!-- Font rounded stile iOS -->
+
+  <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Material Symbols Rounded (icone) -->
+  <!-- Material Symbols Rounded -->
   <link
     rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
@@ -21,11 +21,10 @@
 <body>
   <div class="app">
 
-    <!-- 🟣 SPLASH SCREEN -->
+    <!-- SPLASH -->
     <div id="splashScreen" class="screen splash-screen">
       <div class="splash-content glass">
         <div class="splash-logo-wrap">
-          <!-- 👇 Assicurati che questo percorso corrisponda al tuo file -->
           <img src="assets/logo-casa.png" alt="Logo casa" class="splash-logo-img" />
         </div>
         <h1>Corso Montevecchio 66</h1>
@@ -33,13 +32,11 @@
       </div>
     </div>
 
-    <!-- 🔵 SCHERMATA 1: LOGIN / REGISTRAZIONE -->
+    <!-- LOGIN -->
     <div id="loginScreen" class="screen screen-login">
       <div class="login-card card-elevated anim-enter">
         <h1>Benvenuto 👋</h1>
-        <p class="subtitle">
-          Registrati per la casa <strong>Corso Montevecchio 66</strong>
-        </p>
+        <p class="subtitle">Registrati per la casa <strong>Corso Montevecchio 66</strong></p>
 
         <div class="avatar-large-wrapper">
           <div id="loginAvatarPreview" class="avatar-large avatar-ring">
@@ -69,37 +66,26 @@
               <input id="photoFileInput" type="file" accept="image/*" />
             </label>
           </div>
-          <p class="note">
-            Se possibile usa la fotocamera. In alternativa puoi scegliere una foto dalla galleria.
-          </p>
+          <p class="note">Se possibile usa la fotocamera. In alternativa carica una foto.</p>
         </div>
 
         <!-- Pannello fotocamera -->
         <div id="cameraPanel" class="camera-panel glass hidden">
           <video id="cameraVideo" autoplay playsinline></video>
           <div class="camera-buttons">
-            <button id="takePhotoBtn" type="button" class="primary-btn tap-animate">
-              📸 Scatta
-            </button>
-            <button id="closeCameraBtn" type="button" class="btn-secondary tap-animate">
-              Chiudi
-            </button>
+            <button id="takePhotoBtn" type="button" class="primary-btn tap-animate">📸 Scatta</button>
+            <button id="closeCameraBtn" type="button" class="btn-secondary tap-animate">Chiudi</button>
           </div>
         </div>
 
-        <button id="registerBtn" class="primary-btn primary-btn-full tap-animate" type="button">
-          Entra in casa
-        </button>
-
-        <p class="note tiny">
-          I dati sono salvati solo su questo dispositivo (nessun server, nessun costo).
-        </p>
+        <button id="registerBtn" class="primary-btn primary-btn-full tap-animate" type="button">Entra in casa</button>
+        <p class="note tiny">Dati salvati solo su questo dispositivo (nessun server, nessun costo).</p>
       </div>
     </div>
 
-    <!-- 🟢 SCHERMATA 2: CASA / GRUPPO -->
+    <!-- MAIN -->
     <div id="mainScreen" class="screen screen-main">
-      <header class="topbar glass">
+      <header class="topbar glass clearer">
         <div>
           <h1 id="groupName">Corso Montevecchio 66</h1>
           <p class="subtitle">Gestione faccende di casa</p>
@@ -111,10 +97,10 @@
       </header>
 
       <main>
-        <!-- 🏠 HOME: MENU SEZIONI + LAVAGNA -->
-        <div id="homeSections" class="home-sections view">
+        <!-- HOME -->
+        <div id="homeSections" class="home-sections view view-active" style="display:flex;">
           <button class="section-tile card-elevated tap-animate" data-section="laundry">
-            <div class="section-icon pastel-blue">
+            <div class="section-icon pastel-sky">
               <span class="material-symbols-rounded"> local_laundry_service </span>
             </div>
             <div class="section-text">
@@ -125,7 +111,7 @@
           </button>
 
           <button class="section-tile card-elevated tap-animate" data-section="shower">
-            <div class="section-icon pastel-cyan">
+            <div class="section-icon pastel-mint">
               <span class="material-symbols-rounded"> shower </span>
             </div>
             <div class="section-text">
@@ -136,8 +122,8 @@
           </button>
 
           <button class="section-tile card-elevated tap-animate" data-section="cleaning">
-            <div class="section-icon pastel-green">
-              <span class="material-symbols-rounded"> cleaning_services </span>
+            <div class="section-icon pastel-lilac">
+              <span class="material-symbols-rounded"> mop </span>
             </div>
             <div class="section-text">
               <h2>Pulizie</h2>
@@ -147,7 +133,7 @@
           </button>
 
           <button class="section-tile card-elevated tap-animate" data-section="shopping">
-            <div class="section-icon pastel-yellow">
+            <div class="section-icon pastel-peach">
               <span class="material-symbols-rounded"> shopping_cart </span>
             </div>
             <div class="section-text">
@@ -157,7 +143,7 @@
             <span class="section-chevron material-symbols-rounded"> chevron_right </span>
           </button>
 
-          <!-- 🧽 LAVAGNA DI CASA IN HOME -->
+          <!-- LAVAGNA -->
           <section class="card blackboard-card card-elevated anim-enter">
             <h3 style="margin-top:0;margin-bottom:6px;font-size:0.9rem;">Lavagna di casa</h3>
             <div id="homeBlackboard" class="blackboard tap-animate">
@@ -168,7 +154,7 @@
             </div>
           </section>
 
-          <!-- Dialogo per scrivere sulla lavagna -->
+          <!-- Dialogo lavagna -->
           <div id="blackboardDialog" class="dialog glass hidden">
             <p>Scrivi un pensiero da mostrare sulla lavagna:</p>
             <textarea id="blackboardInput" rows="3"
@@ -180,9 +166,9 @@
           </div>
         </div>
 
-        <!-- 🔵 SOTTO-SCHERMATA: LAVATRICE -->
-        <div id="laundryScreen" class="subscreen view">
-          <div class="subheader">
+        <!-- LAVATRICE -->
+        <div id="laundryScreen" class="subscreen view" style="display:none;">
+          <div class="subheader subbar glass clearer">
             <button class="back-btn btn-secondary tap-animate" data-back="home">
               <span class="material-symbols-rounded"> arrow_back_ios_new </span>
               Indietro
@@ -197,12 +183,14 @@
             </p>
 
             <div class="field-row">
-              <label for="laundryDateTime">Data e ora della lavatrice</label>
-              <div class="datetime-wrapper">
-                <span class="material-symbols-rounded datetime-icon"> calendar_month </span>
-                <input id="laundryDateTime" type="datetime-local" />
-              </div>
+              <label>Data e ora della lavatrice</label>
+              <button id="laundryDateBtn" class="dtp-trigger tap-animate" type="button">
+                <span class="material-symbols-rounded"> calendar_month </span>
+                <span id="laundryDateTimeDisplay">Seleziona data e ora</span>
+              </button>
+              <input id="laundryDateTimeValue" type="hidden" />
             </div>
+
             <button id="laundryBookBtn" type="button" class="primary-btn primary-btn-full tap-animate">
               Prenota lavatrice
             </button>
@@ -213,15 +201,13 @@
           <section class="card card-elevated anim-enter">
             <h3>Prenotazioni attive</h3>
             <ul id="laundryList" class="booking-list"></ul>
-            <p class="note tiny">
-              Le prenotazioni scadono automaticamente dopo 48 ore dall'orario di inizio.
-            </p>
+            <p class="note tiny">Le prenotazioni scadono automaticamente dopo 48 ore dall'inizio.</p>
           </section>
         </div>
 
-        <!-- 🔵 SOTTO-SCHERMATA: DOCCIA -->
-        <div id="showerScreen" class="subscreen view">
-          <div class="subheader">
+        <!-- DOCCIA -->
+        <div id="showerScreen" class="subscreen view" style="display:none;">
+          <div class="subheader subbar glass clearer">
             <button class="back-btn btn-secondary tap-animate" data-back="home">
               <span class="material-symbols-rounded"> arrow_back_ios_new </span>
               Indietro
@@ -230,18 +216,17 @@
           </div>
 
           <section class="card card-elevated anim-enter">
-            <p class="note">
-              Ogni doccia occupa uno slot di <strong>90 minuti</strong> (tempo doccia + ricarica boiler).
-              Puoi prenotare un orario e verrà visualizzato negli slot.
-            </p>
+            <p class="note">Ogni doccia occupa uno slot di <strong>90 minuti</strong>.</p>
 
             <div class="field-row">
-              <label for="showerDateTime">Data e ora della doccia</label>
-              <div class="datetime-wrapper">
-                <span class="material-symbols-rounded datetime-icon"> calendar_month </span>
-                <input id="showerDateTime" type="datetime-local" />
-              </div>
+              <label>Data e ora della doccia</label>
+              <button id="showerDateBtn" class="dtp-trigger tap-animate" type="button">
+                <span class="material-symbols-rounded"> calendar_month </span>
+                <span id="showerDateTimeDisplay">Seleziona data e ora</span>
+              </button>
+              <input id="showerDateTimeValue" type="hidden" />
             </div>
+
             <button id="showerBookBtn" type="button" class="primary-btn primary-btn-full tap-animate">
               Prenota doccia
             </button>
@@ -250,12 +235,9 @@
           <section class="card card-elevated anim-enter">
             <h3>Prossime 5 docce</h3>
             <div id="showerSlots" class="slot-list"></div>
-            <p class="note tiny">
-              Gli slot scaduti (dopo 90 minuti dall'inizio) vengono rimossi automaticamente.
-            </p>
+            <p class="note tiny">Gli slot scaduti vengono rimossi automaticamente.</p>
           </section>
 
-          <!-- Dialogo conflitti slot -->
           <div id="showerConflictDialog" class="dialog glass hidden">
             <p>
               ⚠️ <strong>Attenzione:</strong> lo slot che hai scelto si sovrappone a una doccia già prenotata.
@@ -272,14 +254,13 @@
           </div>
 
           <p class="note tiny" style="margin-top: 8px; text-align: center;">
-            😅 <strong>Ricorda:</strong> controlla sempre il boiler prima di entrare in doccia,
-            per assicurarti che l'acqua sia davvero calda!
+            😅 <strong>Ricorda:</strong> controlla sempre il boiler prima di entrare in doccia!
           </p>
         </div>
 
-        <!-- 🔵 SOTTO-SCHERMATA: PULIZIE -->
-        <div id="cleaningScreen" class="subscreen view">
-          <div class="subheader">
+        <!-- PULIZIE -->
+        <div id="cleaningScreen" class="subscreen view" style="display:none;">
+          <div class="subheader subbar glass clearer">
             <button class="back-btn btn-secondary tap-animate" data-back="home">
               <span class="material-symbols-rounded"> arrow_back_ios_new </span>
               Indietro
@@ -290,7 +271,6 @@
           <section class="card card-elevated anim-enter">
             <p class="note">
               Clicca sulla zona che vuoi pulire questa settimana. Ogni zona mostra chi se la è presa in carico.
-              Le assegnazioni si azzerano automaticamente quando inizia una nuova settimana (e finiscono nello storico).
             </p>
 
             <div class="cleaning-zones">
@@ -315,9 +295,7 @@
 
           <section class="card card-elevated anim-enter">
             <h3>Storico pulizie</h3>
-            <p class="note tiny">
-              Ultimi che hanno pulito ogni zona (il più recente appare per primo).
-            </p>
+            <p class="note tiny">Ultimi che hanno pulito (il più recente per primo).</p>
 
             <div class="cleaning-history">
               <div class="cleaning-history-row">
@@ -340,9 +318,9 @@
           </section>
         </div>
 
-        <!-- 🔵 SOTTO-SCHERMATA: LISTA SPESA -->
-        <div id="shoppingScreen" class="subscreen view">
-          <div class="subheader">
+        <!-- LISTA SPESA -->
+        <div id="shoppingScreen" class="subscreen view" style="display:none;">
+          <div class="subheader subbar glass clearer">
             <button class="back-btn btn-secondary tap-animate" data-back="home">
               <span class="material-symbols-rounded"> arrow_back_ios_new </span>
               Indietro
@@ -359,15 +337,13 @@
               <button type="submit" class="primary-btn tap-animate">+</button>
             </form>
 
-            <p class="note tiny">
-              Spunta ciò che manca. Puoi aggiungere nuovi elementi con il pulsante "+".
-            </p>
+            <p class="note tiny">Spunta ciò che manca. Puoi aggiungere nuovi elementi con il “+”.</p>
           </section>
         </div>
 
-        <!-- 🔵 SOTTO-SCHERMATA: PROFILO UTENTE -->
-        <div id="profileScreen" class="subscreen view">
-          <div class="subheader">
+        <!-- PROFILO -->
+        <div id="profileScreen" class="subscreen view" style="display:none;">
+          <div class="subheader subbar glass clearer">
             <button class="back-btn btn-secondary tap-animate" data-back="home">
               <span class="material-symbols-rounded"> arrow_back_ios_new </span>
               Indietro
@@ -406,7 +382,6 @@
               </div>
             </div>
 
-            <!-- Pannello fotocamera profilo -->
             <div id="profileCameraPanel" class="camera-panel glass hidden">
               <video id="profileCameraVideo" autoplay playsinline></video>
               <div class="camera-buttons">
@@ -418,10 +393,7 @@
             <button id="profileSaveBtn" type="button" class="primary-btn primary-btn-full tap-animate">
               Salva modifiche
             </button>
-
-            <p class="note tiny">
-              Le modifiche valgono solo su questo dispositivo. Le prenotazioni future useranno il nuovo nome e la nuova foto.
-            </p>
+            <p class="note tiny">Le modifiche valgono solo su questo dispositivo.</p>
           </section>
         </div>
       </main>
@@ -429,6 +401,39 @@
       <footer>
         <p>Tip: usa “Aggiungi alla schermata Home” per trasformarla in app 😊</p>
       </footer>
+    </div>
+  </div>
+
+  <!-- DateTime Picker overlay (riutilizzato da Lavatrice e Doccia) -->
+  <div id="dtpOverlay" class="dtp-overlay hidden">
+    <div class="dtp-modal card-elevated">
+      <div class="dtp-header">
+        <button id="dtpPrevMonth" class="btn-secondary icon-btn" type="button">
+          <span class="material-symbols-rounded"> chevron_left </span>
+        </button>
+        <div id="dtpMonthLabel" class="dtp-month-label">Marzo 2025</div>
+        <button id="dtpNextMonth" class="btn-secondary icon-btn" type="button">
+          <span class="material-symbols-rounded"> chevron_right </span>
+        </button>
+      </div>
+
+      <div class="dtp-body">
+        <div class="dtp-calendar">
+          <div class="dtp-weekdays">
+            <span>Lu</span><span>Ma</span><span>Me</span><span>Gi</span><span>Ve</span><span>Sa</span><span>Do</span>
+          </div>
+          <div id="dtpDays" class="dtp-days"></div>
+        </div>
+        <div class="dtp-times">
+          <div class="dtp-times-title">Orario</div>
+          <div id="dtpTimeList" class="dtp-time-list"></div>
+        </div>
+      </div>
+
+      <div class="dtp-footer">
+        <button id="dtpCancel" class="btn-secondary tap-animate" type="button">Annulla</button>
+        <button id="dtpConfirm" class="primary-btn tap-animate" type="button">Conferma</button>
+      </div>
     </div>
   </div>
 
