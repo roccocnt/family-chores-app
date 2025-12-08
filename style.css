@@ -29,11 +29,13 @@ body {
 /* Splash screen */
 
 .splash-screen {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   background: radial-gradient(circle at top, #eef2ff, #fdfbff);
+  overflow: hidden;
   opacity: 1;
   transform: translateY(0);
   transition:
@@ -41,41 +43,101 @@ body {
     transform 0.45s ease-out;
 }
 
+/* Sfondo glassmorphism + gradient pastello */
+
+.splash-screen::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(162, 191, 255, 0.45), transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(255, 212, 183, 0.4), transparent 60%),
+    radial-gradient(circle at 20% 90%, rgba(184, 242, 210, 0.35), transparent 55%),
+    linear-gradient(145deg, #eef2ff, #fdfbff, #f7f1ff);
+  filter: blur(18px);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* Contenitore centrale glass */
+
 .splash-content {
+  position: relative;
+  padding: 22px 24px 18px;
+  border-radius: 24px;
   text-align: center;
   color: #111827;
-}
-
-.splash-logo {
-  width: 70px;
-  height: 70px;
-  border-radius: 24px;
-  background: radial-gradient(circle at 30% 20%, #e4f0ff, #c0ddff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 10px;
   box-shadow:
-    0 14px 30px rgba(15, 23, 42, 0.18),
-    0 0 0 5px rgba(255, 255, 255, 0.9);
+    0 20px 45px rgba(15, 23, 42, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.9);
 }
 
-.splash-logo .material-symbols-rounded {
-  font-size: 32px;
-  color: #0f172a;
+/* Logo grande con glow morbido */
+
+.splash-logo-wrap {
+  width: 96px;
+  height: 96px;
+  border-radius: 30px;
+  margin: 0 auto 12px;
+  position: relative;
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.9),
+    0 20px 40px rgba(15, 23, 42, 0.35);
+  overflow: hidden;
+}
+
+.splash-logo-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: inherit;
+  background: radial-gradient(circle at 30% 0%, rgba(255, 255, 255, 0.5), transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+
+.splash-logo-img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  animation: logoBounce 0.7s ease-out;
+  transform-origin: center;
+}
+
+/* Micro-animazione di rimbalzo */
+
+@keyframes logoBounce {
+  0% {
+    transform: scale(0.85) translateY(8px);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.06) translateY(-4px);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.98) translateY(2px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
 }
 
 .splash-content h1 {
-  margin: 0 0 4px;
-  font-size: 1.3rem;
+  margin: 4px 0 4px;
+  font-size: 1.25rem;
   font-weight: 600;
 }
 
-.splash-content p {
+.splash-tagline {
   margin: 0;
   font-size: 0.9rem;
   color: #6b7280;
 }
+
+/* Stati di transizione della splash */
 
 .splash-visible {
   opacity: 1;
@@ -709,37 +771,40 @@ main {
   gap: 4px;
 }
 
-/* Lavagna di casa (ridisegnata) */
+/* Lavagna di casa (cornice legno realistica + sfondo coerente) */
 
 .blackboard-card {
   margin-top: 4px;
 }
 
+/* Cornice legno sul bordo (non sullo sfondo) */
+
 .blackboard {
   position: relative;
-  border-radius: 22px;
-  border: 18px solid transparent;
-  padding: 20px;
-  min-height: 180px;
-  background:
-    /* cornice legno con venature */
-    linear-gradient(135deg, #b8793b, #e3b072 42%, #955528 80%) padding-box,
-    repeating-linear-gradient(
+  border-width: 22px;
+  border-style: solid;
+  border-color: transparent;
+  border-radius: 24px;
+  padding: 18px;
+  border-image: repeating-linear-gradient(
       120deg,
       #f0c99a 0px,
       #f0c99a 3px,
       #e2b67e 3px,
       #e2b67e 6px,
       #c88a4a 6px,
-      #c88a4a 9px
-    ) border-box;
+      #c88a4a 9px,
+      #9b5b2e 9px,
+      #9b5b2e 12px
+    )
+    30;
   box-shadow:
     0 12px 26px rgba(15, 23, 42, 0.28),
     0 0 0 1px rgba(255, 255, 255, 0.55),
-    inset 0 0 4px rgba(0, 0, 0, 0.7);
+    inset 0 0 4px rgba(0, 0, 0, 0.3);
 }
 
-/* superficie lavagna leggermente texturizzata */
+/* Superficie lavagna: blu/verde scuro coerente col resto, con leggera texture */
 
 .blackboard::before {
   content: "";
@@ -747,28 +812,28 @@ main {
   inset: 10px;
   border-radius: 14px;
   background:
-    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.04), transparent 55%),
-    radial-gradient(circle at 80% 25%, rgba(255, 255, 255, 0.04), transparent 55%),
-    radial-gradient(circle at 25% 80%, rgba(255, 255, 255, 0.03), transparent 55%),
-    linear-gradient(135deg, #252c25, #1b221c 45%, #151b15);
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.04), transparent 60%),
+    radial-gradient(circle at 80% 25%, rgba(255, 255, 255, 0.03), transparent 60%),
+    radial-gradient(circle at 25% 80%, rgba(255, 255, 255, 0.03), transparent 60%),
+    linear-gradient(135deg, #222a33, #1a222b 48%, #151b23);
   box-shadow:
-    inset 0 0 12px rgba(0, 0, 0, 0.75),
-    inset 0 0 3px rgba(255, 255, 255, 0.08);
+    inset 0 0 12px rgba(0, 0, 0, 0.8),
+    inset 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
-/* polvere di gesso più leggera */
+/* Polvere di gesso, più leggera e naturale */
 
 .blackboard::after {
   content: "";
   position: absolute;
-  inset: 12px;
+  inset: 14px;
   border-radius: 12px;
   background-image:
-    radial-gradient(circle at 12% 12%, rgba(255, 255, 255, 0.08) 0, transparent 60%),
-    radial-gradient(circle at 80% 18%, rgba(255, 255, 255, 0.05) 0, transparent 65%),
-    radial-gradient(circle at 25% 86%, rgba(255, 255, 255, 0.05) 0, transparent 60%),
-    radial-gradient(circle at 63% 90%, rgba(255, 255, 255, 0.03) 0, transparent 70%);
-  opacity: 0.28;
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.12) 0, transparent 55%),
+    radial-gradient(circle at 78% 20%, rgba(255, 255, 255, 0.07) 0, transparent 55%),
+    radial-gradient(circle at 20% 85%, rgba(255, 255, 255, 0.07) 0, transparent 60%),
+    radial-gradient(circle at 62% 88%, rgba(255, 255, 255, 0.05) 0, transparent 65%);
+  opacity: 0.24;
   pointer-events: none;
 }
 
@@ -783,12 +848,11 @@ main {
   white-space: pre-line;
   letter-spacing: 0.03em;
   opacity: 0.92;
-  /* Effetto gesso: meno neon, più gesso morbido */
   text-shadow:
-    0.3px 0.6px 0 rgba(255, 255, 255, 0.4),
-    -0.2px -0.5px 0 rgba(255, 255, 255, 0.35),
-    0 0 1px rgba(255, 255, 255, 0.4);
-  filter: contrast(1.02) brightness(1.0);
+    0.3px 0.6px 0 rgba(255, 255, 255, 0.35),
+    -0.2px -0.5px 0 rgba(255, 255, 255, 0.3),
+    0 0 1px rgba(255, 255, 255, 0.38);
+  filter: contrast(1.02) brightness(0.98);
 }
 
 .blackboard-placeholder {
