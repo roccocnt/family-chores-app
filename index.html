@@ -21,6 +21,17 @@
 <body>
   <div class="app">
 
+    <!-- 🟣 SPLASH SCREEN -->
+    <div id="splashScreen" class="screen splash-screen">
+      <div class="splash-content">
+        <div class="splash-logo">
+          <span class="material-symbols-rounded"> home </span>
+        </div>
+        <h1>Corso Montevecchio 66</h1>
+        <p>La tua app di casa condivisa</p>
+      </div>
+    </div>
+
     <!-- 🔵 SCHERMATA 1: LOGIN / REGISTRAZIONE -->
     <div id="loginScreen" class="screen screen-login">
       <div class="login-card card-elevated anim-enter">
@@ -107,7 +118,7 @@
             </div>
             <div class="section-text">
               <h2>Lavatrice</h2>
-              <p>Prenota lavaggio e stendini</p>
+              <p>Prenota lavatrice e stendini</p>
             </div>
             <span class="section-chevron material-symbols-rounded"> chevron_right </span>
           </button>
@@ -118,7 +129,7 @@
             </div>
             <div class="section-text">
               <h2>Doccia</h2>
-              <p>Slot boiler condivisi</p>
+              <p>Prenota lo slot orario che preferisci</p>
             </div>
             <span class="section-chevron material-symbols-rounded"> chevron_right </span>
           </button>
@@ -186,7 +197,10 @@
 
             <div class="field-row">
               <label for="laundryDateTime">Data e ora della lavatrice</label>
-              <input id="laundryDateTime" type="datetime-local" />
+              <div class="datetime-wrapper">
+                <span class="material-symbols-rounded datetime-icon"> calendar_month </span>
+                <input id="laundryDateTime" type="datetime-local" />
+              </div>
             </div>
             <button id="laundryBookBtn" type="button" class="primary-btn primary-btn-full tap-animate">
               Prenota lavatrice
@@ -222,7 +236,10 @@
 
             <div class="field-row">
               <label for="showerDateTime">Data e ora della doccia</label>
-              <input id="showerDateTime" type="datetime-local" />
+              <div class="datetime-wrapper">
+                <span class="material-symbols-rounded datetime-icon"> calendar_month </span>
+                <input id="showerDateTime" type="datetime-local" />
+              </div>
             </div>
             <button id="showerBookBtn" type="button" class="primary-btn primary-btn-full tap-animate">
               Prenota doccia
