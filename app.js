@@ -413,6 +413,129 @@ function resetCleaningWeekIfNeeded() {
   state.group.cleaningWeekKey = currentKey;
 }
 
+// ---------- Funzioni di booking riusabili ----------
+
+function bookLaundryFromSelectedDate() {
+  const msgEl = document.getElementById("laundryStatusMessage");
+
+  if (!selectedLaundryDateTime) {
+    alert("Seleziona prima data e ora della lavatrice.");
+    return;
+  }
+
+  const start = new Date(selectedLaundryDateTime);
+  if (isNaN(start.getTime())) {
+    alert("Data/ora non valida.");
+    return;
+  }
+
+  const now = new Date();
+  if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
+    if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
+      return;
+    }
+  }
+
+  cleanupLaundryReservations();
+  const list = state.group.laundryReservations || [];
+
+  if (list.length >= 2) {
+    const sorted = list
+      .slice()
+      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    const first = sorted[0];
+    const firstEndMs = new Date(first.startTime).getTime() + 48 * MS_HOUR;
+    const diffMs = Math.max(0, firstEndMs - Date.now());
+    const hoursLeft = Math.ceil(diffMs / MS_HOUR);
+    const text = `Al momento non ci sono stendini liberi. Il primo si libera tra circa ${hoursLeft} ore (prenotato da ${first.userName}).`;
+    if (msgEl) msgEl.textContent = text;
+    alert(text);
+    return;
+  }
+
+  let rackLabel = "Stendino 1";
+  if (list.length === 1) {
+    rackLabel = list[0].rackLabel === "Stendino 1" ? "Stendino 2" : "Stendino 2";
+  }
+
+  list.push({
+    id: Date.now(),
+    userName: getUserFullName(),
+    startTime: start.toISOString(),
+    rackLabel,
+  });
+
+  state.group.laundryReservations = list;
+  saveState();
+  if (msgEl) msgEl.textContent = "";
+  renderLaundryScreen();
+  alert(`Lavatrice prenotata con ${rackLabel} il ${formatDateTimeShort(start.toISOString())}.`);
+}
+
+function addShowerBooking(startDate, forceConflict) {
+  cleanupShowerBookings();
+  const list = state.group.showerBookings || [];
+  const newBooking = {
+    id: Date.now(),
+    userName: getUserFullName(),
+    startTime: startDate.toISOString(),
+    hasConflict: !!forceConflict,
+  };
+  list.push(newBooking);
+  state.group.showerBookings = list;
+  recomputeShowerConflicts();
+  saveState();
+  renderShowerScreen();
+}
+
+function bookShowerFromSelectedDate() {
+  const conflictDialog = document.getElementById("showerConflictDialog");
+
+  if (!selectedShowerDateTime) {
+    alert("Seleziona prima data e ora della doccia.");
+    return;
+  }
+
+  const start = new Date(selectedShowerDateTime);
+  if (isNaN(start.getTime())) {
+    alert("Data/ora non valida.");
+    return;
+  }
+
+  const now = new Date();
+  if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
+    if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
+      return;
+    }
+  }
+
+  cleanupShowerBookings();
+  const list = state.group.showerBookings || [];
+  let hasOverlap = false;
+  const startMs = start.getTime();
+  const endMs = startMs + MS_90_MIN;
+
+  for (const b of list) {
+    const s2 = new Date(b.startTime).getTime();
+    const e2 = s2 + MS_90_MIN;
+    if (intervalsOverlap(startMs, endMs, s2, e2)) {
+      hasOverlap = true;
+      break;
+    }
+  }
+
+  if (!hasOverlap) {
+    addShowerBooking(start, false);
+    alert(`Doccia prenotata il ${formatDateTimeShort(start.toISOString())}.`);
+    return;
+  }
+
+  pendingShowerBooking = {
+    startTime: start,
+  };
+  if (conflictDialog) conflictDialog.classList.remove("hidden");
+}
+
 // ---------- Render: LOGIN ----------
 function renderLoginAvatar() {
   const avatarEl = document.getElementById("loginAvatarPreview");
@@ -929,6 +1052,7 @@ function runSplashThen(target) {
     if (target === "login") {
       showScreen("login");
     } else {
+      renderHeader();
       showScreen("main");
       showMainSection("home");
     }
@@ -942,10 +1066,10 @@ function runSplashThen(target) {
   void splash.offsetWidth;
   splash.classList.add("splash-visible");
 
-  // ~3 secondi totali (2.6s wait + 0.45s fade)
+  // ~3 secondi totali (2.4s wait + 0.6s fade)
   setTimeout(() => {
     splash.classList.add("splash-fade-out");
-  }, 2600);
+  }, 2400);
 
   splash.addEventListener(
     "transitionend",
@@ -956,6 +1080,7 @@ function runSplashThen(target) {
       if (target === "login") {
         showScreen("login");
       } else {
+        renderHeader();
         showScreen("main");
         showMainSection("home");
       }
@@ -1118,10 +1243,10 @@ function setupDateTimePickerEvents() {
 
       if (dtpContext === "laundry") {
         selectedLaundryDateTime = d;
-        renderLaundryScreen();
+        bookLaundryFromSelectedDate();
       } else if (dtpContext === "shower") {
         selectedShowerDateTime = d;
-        renderShowerScreen();
+        bookShowerFromSelectedDate();
       }
 
       dialog.classList.add("hidden");
@@ -1171,60 +1296,7 @@ function setupMainEvents() {
   const laundryBtn = document.getElementById("laundryBookBtn");
   if (laundryBtn) {
     laundryBtn.addEventListener("click", () => {
-      const msgEl = document.getElementById("laundryStatusMessage");
-
-      if (!selectedLaundryDateTime) {
-        alert("Seleziona prima data e ora della lavatrice.");
-        return;
-      }
-
-      const start = new Date(selectedLaundryDateTime);
-      if (isNaN(start.getTime())) {
-        alert("Data/ora non valida.");
-        return;
-      }
-
-      const now = new Date();
-      if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
-        if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
-          return;
-        }
-      }
-
-      cleanupLaundryReservations();
-      const list = state.group.laundryReservations || [];
-
-      if (list.length >= 2) {
-        const sorted = list
-          .slice()
-          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-        const first = sorted[0];
-        const firstEndMs = new Date(first.startTime).getTime() + 48 * MS_HOUR;
-        const diffMs = Math.max(0, firstEndMs - Date.now());
-        const hoursLeft = Math.ceil(diffMs / MS_HOUR);
-        const text = `Al momento non ci sono stendini liberi. Il primo si libera tra circa ${hoursLeft} ore (prenotato da ${first.userName}).`;
-        if (msgEl) msgEl.textContent = text;
-        alert(text);
-        return;
-      }
-
-      let rackLabel = "Stendino 1";
-      if (list.length === 1) {
-        rackLabel = list[0].rackLabel === "Stendino 1" ? "Stendino 2" : "Stendino 2";
-      }
-
-      list.push({
-        id: Date.now(),
-        userName: getUserFullName(),
-        startTime: start.toISOString(),
-        rackLabel,
-      });
-
-      state.group.laundryReservations = list;
-      saveState();
-      if (msgEl) msgEl.textContent = "";
-      renderLaundryScreen();
-      alert(`Lavatrice prenotata con ${rackLabel} il ${formatDateTimeShort(start.toISOString())}.`);
+      bookLaundryFromSelectedDate();
     });
   }
 
@@ -1234,66 +1306,9 @@ function setupMainEvents() {
   const changeSlotBtn = document.getElementById("showerChangeSlotBtn");
   const confirmSlotBtn = document.getElementById("showerConfirmSlotBtn");
 
-  function addShowerBooking(startDate, forceConflict) {
-    cleanupShowerBookings();
-    const list = state.group.showerBookings || [];
-    const newBooking = {
-      id: Date.now(),
-      userName: getUserFullName(),
-      startTime: startDate.toISOString(),
-      hasConflict: !!forceConflict,
-    };
-    list.push(newBooking);
-    state.group.showerBookings = list;
-    recomputeShowerConflicts();
-    saveState();
-    renderShowerScreen();
-  }
-
   if (showerBtn) {
     showerBtn.addEventListener("click", () => {
-      if (!selectedShowerDateTime) {
-        alert("Seleziona prima data e ora della doccia.");
-        return;
-      }
-      const start = new Date(selectedShowerDateTime);
-      if (isNaN(start.getTime())) {
-        alert("Data/ora non valida.");
-        return;
-      }
-
-      const now = new Date();
-      if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
-        if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
-          return;
-        }
-      }
-
-      cleanupShowerBookings();
-      const list = state.group.showerBookings || [];
-      let hasOverlap = false;
-      const startMs = start.getTime();
-      const endMs = startMs + MS_90_MIN;
-
-      for (const b of list) {
-        const s2 = new Date(b.startTime).getTime();
-        const e2 = s2 + MS_90_MIN;
-        if (intervalsOverlap(startMs, endMs, s2, e2)) {
-          hasOverlap = true;
-          break;
-        }
-      }
-
-      if (!hasOverlap) {
-        addShowerBooking(start, false);
-        alert(`Doccia prenotata il ${formatDateTimeShort(start.toISOString())}.`);
-        return;
-      }
-
-      pendingShowerBooking = {
-        startTime: start,
-      };
-      if (conflictDialog) conflictDialog.classList.remove("hidden");
+      bookShowerFromSelectedDate();
     });
   }
 
