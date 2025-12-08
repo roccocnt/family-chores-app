@@ -26,7 +26,7 @@ body {
   min-height: 100vh;
 }
 
-/* Splash screen - stile "originale" semplificato, con logo nuovo */
+/* Splash screen - animazione logo+testo */
 
 .splash-screen {
   display: flex;
@@ -37,8 +37,8 @@ body {
   opacity: 0;
   transform: translateY(10px);
   transition:
-    opacity 0.45s ease-out,
-    transform 0.45s ease-out;
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out;
 }
 
 .splash-visible {
@@ -69,7 +69,8 @@ body {
     0 16px 36px rgba(15, 23, 42, 0.18),
     0 0 0 3px rgba(255, 255, 255, 0.9);
   position: relative;
-  animation: splashBounce 1.05s ease-out 0.4s 1;
+  opacity: 0;
+  transform: translateY(-40px) scale(0.85);
 }
 
 .splash-logo img {
@@ -83,28 +84,68 @@ body {
   margin: 4px 0 4px;
   font-size: 1.2rem;
   font-weight: 600;
+  opacity: 0;
+  transform: translateY(20px);
 }
 
 .splash-content p {
   margin: 0;
   font-size: 0.9rem;
   color: #6b7280;
+  opacity: 0;
+  transform: translateY(16px);
 }
 
-@keyframes splashBounce {
+/* Attivazione animazioni quando lo splash diventa visibile */
+
+.splash-visible .splash-logo {
+  animation: logoDropBounce 0.9s cubic-bezier(0.22, 0.7, 0.25, 1.1) 0.3s forwards;
+}
+
+.splash-visible .splash-content h1 {
+  animation: titleRise 0.7s ease-out 0.55s forwards;
+}
+
+.splash-visible .splash-content p {
+  animation: subtitleRise 0.7s ease-out 0.75s forwards;
+}
+
+@keyframes logoDropBounce {
   0% {
-    transform: translateY(10px) scale(0.94);
     opacity: 0;
+    transform: translateY(-40px) scale(0.85);
   }
   40% {
-    transform: translateY(-4px) scale(1.04);
     opacity: 1;
+    transform: translateY(8px) scale(1.05);
   }
-  70% {
-    transform: translateY(2px) scale(0.99);
+  65% {
+    transform: translateY(-4px) scale(0.98);
   }
   100% {
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes titleRise {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtitleRise {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 0.9;
+    transform: translateY(0);
   }
 }
 
