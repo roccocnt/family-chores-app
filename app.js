@@ -1,5 +1,5 @@
 // Stato globale salvato in localStorage (solo su questo dispositivo)
-const STORAGE_KEY = "montevecchio66_app_v4_pastel";
+const STORAGE_KEY = "montevecchio66_app_v5_pastel";
 const MS_HOUR = 60 * 60 * 1000;
 const MS_90_MIN = 90 * 60 * 1000;
 
@@ -222,27 +222,30 @@ function showMainSection(section) {
   const newView = map[section];
   if (!newView) return;
 
-  // Nascondi view corrente con fade-out
+  // Nascondi view corrente con transizione liscia
   if (currentViewElement && currentViewElement !== newView) {
     currentViewElement.classList.remove("view-active");
-    // dopo la durata della transizione CSS, nascondi
     const oldRef = currentViewElement;
-    setTimeout(() => {
-      if (oldRef && oldRef !== newView) {
-        oldRef.style.display = "none";
-      }
-    }, 200);
+    oldRef.addEventListener(
+      "transitionend",
+      (e) => {
+        if (e.propertyName === "opacity") {
+          oldRef.style.display = "none";
+        }
+      },
+      { once: true }
+    );
   }
 
-  // Mostra nuova view con fade-in / slide
-  newView.style.display = section === "home" ? "flex" : "flex";
+  // Mostra nuova view
+  newView.style.display = "flex";
   requestAnimationFrame(() => {
     newView.classList.add("view-active");
   });
 
   currentViewElement = newView;
 
-  // Rendi / aggiorna contenuti della sezione scelta
+  // Render contenuti
   if (section === "home") {
     renderHomeBlackboard();
   } else if (section === "laundry") {
@@ -628,7 +631,7 @@ function renderHomeBlackboard() {
   } else {
     textEl.textContent = msg.text;
     textEl.classList.remove("blackboard-placeholder");
-    authorEl.textContent = ""; // niente nome autore come richiesto
+    authorEl.textContent = ""; // niente autore visibile
   }
 }
 
@@ -654,6 +657,8 @@ function renderShopping() {
     cb.addEventListener("change", () => {
       item.checked = cb.checked;
       saveState();
+      li.classList.add("check-anim");
+      setTimeout(() => li.classList.remove("check-anim"), 190);
     });
 
     const span = document.createElement("span");
@@ -799,8 +804,7 @@ function setupLoginEvents() {
       saveState();
 
       renderHeader();
-      showScreen("main");
-      showMainSection("home");
+      runSplashThen("main"); // splash anche dopo registrazione
     });
   }
 }
@@ -909,6 +913,52 @@ function setupProfileEvents() {
       alert("Profilo aggiornato!");
     });
   }
+}
+
+// ---------- Splash logic ----------
+function runSplashThen(target) {
+  const splash = document.getElementById("splashScreen");
+  const login = document.getElementById("loginScreen");
+  const main = document.getElementById("mainScreen");
+
+  if (!splash || !login || !main) {
+    // fallback senza splash
+    if (target === "login") {
+      showScreen("login");
+    } else {
+      showScreen("main");
+      showMainSection("home");
+    }
+    return;
+  }
+
+  // Nascondi login e main mentre splash è visibile
+  login.style.display = "none";
+  main.style.display = "none";
+
+  splash.style.display = "flex";
+  splash.classList.add("splash-visible");
+
+  // dopo un attimo inizia il fade out
+  setTimeout(() => {
+    splash.classList.add("splash-fade-out");
+  }, 650);
+
+  splash.addEventListener(
+    "transitionend",
+    (e) => {
+      if (e.propertyName !== "opacity") return;
+      splash.style.display = "none";
+      splash.classList.remove("splash-visible", "splash-fade-out");
+      if (target === "login") {
+        showScreen("login");
+      } else {
+        showScreen("main");
+        showMainSection("home");
+      }
+    },
+    { once: true }
+  );
 }
 
 // ---------- Eventi: MAIN ----------
@@ -1230,12 +1280,6 @@ window.addEventListener("DOMContentLoaded", () => {
     typeof state.user.firstName === "string" &&
     state.user.firstName.trim().length > 0;
 
-  if (hasUser) {
-    renderHeader();
-    showScreen("main");
-    showMainSection("home");
-  } else {
-    renderLoginForm();
-    showScreen("login");
-  }
+  // Mostra splash all'avvio, poi login o home
+  runSplashThen(hasUser ? "main" : "login");
 });
