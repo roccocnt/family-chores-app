@@ -2,7 +2,7 @@
 const STORAGE_KEY = "montevecchio66_app_v5_pastel_logo";
 const MS_HOUR = 60 * 60 * 1000;
 const MS_90_MIN = 90 * 60 * 1000;
-
+ 
 // Elementi predefiniti della lista spesa
 const DEFAULT_SHOPPING_ITEMS = [
   "Sale",
