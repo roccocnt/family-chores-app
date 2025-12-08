@@ -1,1471 +1,1023 @@
-// Stato globale salvato in localStorage (solo su questo dispositivo)
-const STORAGE_KEY = "montevecchio66_app_v6_pastel";
-const MS_HOUR = 60 * 60 * 1000;
-const MS_90_MIN = 90 * 60 * 1000;
+* {
+  box-sizing: border-box;
+}
 
-// Elementi predefiniti della lista spesa
-const DEFAULT_SHOPPING_ITEMS = [
-  "Sale",
-  "Zucchero",
-  "Fazzoletti",
-  "Scottex",
-  "Carta igienica",
-  "Acqua",
-  "Sgrassatore",
-  "Spugnette piatti",
-  "Svelto",
-  "Igienizzante bagno",
-  "Detersivo pavimenti",
-  "Pellicola alimenti",
-  "Carta stagnola",
-  "Carta forno",
-  "Sacchetti organico",
-  "Sapone mani",
-  "Sacchi plastica",
-  "Mr Muscolo",
-  "Candeggina",
-];
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top left, #f4f7ff, #fef9ff 40%, #f4f7ff 80%);
+}
 
-const CLEANING_ZONES = ["bagno_piccolo", "bagno_grande", "sala", "cucina"];
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8f9ff 0%, #fdfcff 40%, #f6f7fb 100%);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(255, 255, 255, 0.8);
+  border-right: 1px solid rgba(255, 255, 255, 0.8);
+}
 
-let state = {
-  user: {
-    firstName: "",
-    lastName: "",
-    photoData: null, // base64 della foto utente
-  },
-  group: {
-    name: "Corso Montevecchio 66",
-    laundryReservations: [], // max 2
-    showerBookings: [], // lista docce
-    shopping: [],
-    shoppingChecklist: [],
-    board: [],
-    cleaningAssignments: {
-      bagno_piccolo: null,
-      bagno_grande: null,
-      sala: null,
-      cucina: null,
-    },
-    cleaningHistory: {
-      bagno_piccolo: [],
-      bagno_grande: [],
-      sala: [],
-      cucina: [],
-    },
-    cleaningWeekKey: null,
-  },
-};
+/* Schermi principali */
 
-let cameraStream = null;
-let currentViewElement = null;
-let pendingShowerBooking = null;
+.screen {
+  width: 100%;
+  min-height: 100vh;
+}
 
-// DateTime Picker stato
-let dtpContext = null; // "laundry" | "shower"
-let dtpSelectedDay = null; // {date: Date}
-let dtpSelectedTime = null; // {hour, minute}
-let selectedLaundryDateTime = null; // Date
-let selectedShowerDateTime = null; // Date
+/* Splash screen - stile "originale" semplificato, con logo nuovo */
 
-// ---------- Persistenza ----------
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const pg = parsed.group || {};
+.splash-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(180deg, #e7f0ff 0%, #fdf8ff 100%);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.45s ease-out,
+    transform 0.45s ease-out;
+}
 
-      state = {
-        ...state,
-        ...parsed,
-        user: { ...state.user, ...(parsed.user || {}) },
-        group: {
-          ...state.group,
-          ...pg,
-          laundryReservations: pg.laundryReservations || [],
-          showerBookings: pg.showerBookings || [],
-          shopping: pg.shopping || [],
-          shoppingChecklist: pg.shoppingChecklist || [],
-          board: pg.board || [],
-          cleaningAssignments: {
-            bagno_piccolo: null,
-            bagno_grande: null,
-            sala: null,
-            cucina: null,
-            ...(pg.cleaningAssignments || {}),
-          },
-          cleaningHistory: {
-            bagno_piccolo: [],
-            bagno_grande: [],
-            sala: [],
-            cucina: [],
-            ...(pg.cleaningHistory || {}),
-          },
-          cleaningWeekKey: pg.cleaningWeekKey || null,
-        },
-      };
-    }
-  } catch (e) {
-    console.error("Errore caricando lo stato:", e);
+.splash-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.splash-fade-out {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.splash-content {
+  text-align: center;
+  color: #111827;
+}
+
+.splash-logo {
+  width: 96px;
+  height: 96px;
+  border-radius: 32px;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  box-shadow:
+    0 16px 36px rgba(15, 23, 42, 0.18),
+    0 0 0 3px rgba(255, 255, 255, 0.9);
+  position: relative;
+  animation: splashBounce 1.05s ease-out 0.4s 1;
+}
+
+.splash-logo img {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  object-fit: contain;
+}
+
+.splash-content h1 {
+  margin: 4px 0 4px;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.splash-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+@keyframes splashBounce {
+  0% {
+    transform: translateY(10px) scale(0.94);
+    opacity: 0;
   }
-
-  // Inizializza la checklist se vuota
-  if (!state.group.shoppingChecklist || state.group.shoppingChecklist.length === 0) {
-    state.group.shoppingChecklist = DEFAULT_SHOPPING_ITEMS.map((label, idx) => ({
-      id: "pre-" + idx,
-      label,
-      checked: false,
-    }));
+  40% {
+    transform: translateY(-4px) scale(1.04);
+    opacity: 1;
   }
-
-  cleanupLaundryReservations();
-  cleanupShowerBookings();
-  resetCleaningWeekIfNeeded();
-  saveState();
-}
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-// ---------- Utility immagini ----------
-function readImageFileAsBase64Thumbnail(file, maxSize = 256) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject("Errore lettura file");
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-        const base64 = dataUrl.split(",")[1];
-        resolve(base64);
-      };
-      img.onerror = () => reject("Errore caricamento immagine");
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function captureFrameFromVideo(video, maxSize = 256) {
-  return new Promise((resolve, reject) => {
-    if (!video.videoWidth || !video.videoHeight) {
-      return reject("Video non pronto");
-    }
-    const canvas = document.createElement("canvas");
-    const scale = Math.min(maxSize / video.videoWidth, maxSize / video.videoHeight, 1);
-    const w = Math.round(video.videoWidth * scale);
-    const h = Math.round(video.videoHeight * scale);
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, w, h);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-    const base64 = dataUrl.split(",")[1];
-    resolve(base64);
-  });
-}
-
-// ---------- Utility vari ----------
-
-function getUserFullName() {
-  const { firstName, lastName } = state.user;
-  const full = `${firstName || ""} ${lastName || ""}`.trim();
-  return full || "Utente anonimo";
-}
-
-// Colore dell'anello avatar in base al nome (deterministico)
-function getAvatarRingColor(name) {
-  if (!name) return "rgba(0,122,255,0.35)";
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  70% {
+    transform: translateY(2px) scale(0.99);
   }
-  const hue = Math.abs(hash) % 360;
-  return `hsla(${hue}, 70%, 60%, 0.55)`;
-}
-
-function showScreen(name) {
-  const login = document.getElementById("loginScreen");
-  const main = document.getElementById("mainScreen");
-  if (!login || !main) return;
-
-  if (name === "login") {
-    login.style.display = "flex";
-    main.style.display = "none";
-  } else {
-    login.style.display = "none";
-    main.style.display = "flex";
+  100% {
+    transform: translateY(0) scale(1);
   }
 }
 
-// Transizione tra sezioni principali (home, laundry, shower, cleaning, shopping, profile)
-function showMainSection(section) {
-  const homeEl = document.getElementById("homeSections");
-  const laundryEl = document.getElementById("laundryScreen");
-  const showerEl = document.getElementById("showerScreen");
-  const cleaningEl = document.getElementById("cleaningScreen");
-  const shoppingEl = document.getElementById("shoppingScreen");
-  const profileEl = document.getElementById("profileScreen");
+/* Login / Main */
 
-  const map = {
-    home: homeEl,
-    laundry: laundryEl,
-    shower: showerEl,
-    cleaning: cleaningEl,
-    shopping: shoppingEl,
-    profile: profileEl,
-  };
+.screen-login {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
 
-  const newView = map[section];
-  if (!newView) return;
+.screen-main {
+  display: none;
+  flex-direction: column;
+}
 
-  const allViews = [homeEl, laundryEl, showerEl, cleaningEl, shoppingEl, profileEl];
-  allViews.forEach((v) => {
-    if (!v) return;
-    v.style.display = v === newView ? "flex" : "none";
-  });
+/* Login card */
 
-  currentViewElement = newView;
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 18px;
+  padding: 18px 16px 14px;
+  background: rgba(255, 255, 255, 0.96);
+}
 
-  if (section === "home") {
-    renderHomeBlackboard();
-  } else if (section === "laundry") {
-    renderLaundryScreen();
-  } else if (section === "shower") {
-    renderShowerScreen();
-  } else if (section === "cleaning") {
-    resetCleaningWeekIfNeeded();
-    renderCleaning();
-  } else if (section === "shopping") {
-    renderShopping();
-  } else if (section === "profile") {
-    renderProfileScreen();
+.login-card h1 {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.avatar-large-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 10px;
+}
+
+.avatar-large {
+  width: 114px;
+  height: 114px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 30% 20%, #fdfbff, #e5edff);
+  border: 2px solid #ffffff;
+  box-shadow:
+    0 10px 20px rgba(15, 23, 42, 0.18),
+    0 0 0 4px rgba(255, 255, 255, 0.9);
+}
+
+.avatar-large span {
+  font-size: 2.5rem;
+}
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.field-row label {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+input[type="text"],
+textarea {
+  border-radius: 12px;
+  border: 1px solid #d1d5e5;
+  padding: 9px 10px;
+  font-size: 0.92rem;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 1px rgba(148, 163, 184, 0.15);
+}
+
+textarea {
+  resize: vertical;
+}
+
+button,
+.file-label {
+  border-radius: 20px;
+  border: none;
+  padding: 8px 14px;
+  font-size: 0.86rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  font-weight: 500;
+}
+
+button {
+  background: #e5e7f3;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #0a84ff, #007aff);
+  color: #ffffff;
+  box-shadow:
+    0 8px 18px rgba(0, 122, 255, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.primary-btn-full {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+  color: #374151;
+}
+
+.file-label {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+  color: #374151;
+}
+
+.file-label input {
+  display: none;
+}
+
+.photo-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.note {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.note.tiny {
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* Pannello fotocamera */
+
+.camera-panel {
+  margin: 8px 0;
+  border-radius: 14px;
+  padding: 8px;
+}
+
+.camera-panel.hidden {
+  display: none;
+}
+
+.camera-panel video {
+  width: 100%;
+  border-radius: 10px;
+  background: #000;
+}
+
+.camera-buttons {
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Effetto glass generico */
+
+.glass {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+/* Main screen */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  object-fit: contain;
+  box-shadow:
+    0 4px 10px rgba(15, 23, 42, 0.18),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+  background: radial-gradient(circle at 30% 20%, #fefefe, #e5edff);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.current-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Avatar */
+
+.avatar,
+.small-avatar,
+.history-avatar,
+.avatar-large {
+  position: relative;
+}
+
+.avatar {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.94rem;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  border: 2px solid #ffffff;
+  box-shadow:
+    0 6px 14px rgba(15, 23, 42, 0.18),
+    0 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+.avatar-ring::after,
+.small-avatar::after,
+.history-avatar::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 3px var(--avatar-ring, rgba(0, 122, 255, 0.3));
+}
+
+.small-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.84rem;
+  box-shadow:
+    0 4px 10px rgba(15, 23, 42, 0.16),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.history-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  box-shadow:
+    0 3px 8px rgba(15, 23, 42, 0.16),
+    0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.user-name {
+  font-size: 0.82rem;
+  max-width: 130px;
+  cursor: pointer;
+  color: #111827;
+}
+
+main {
+  padding: 10px 12px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Home: menu sezioni */
+
+.home-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.section-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Palette pastello aggiornata, sfumata e coerente */
+
+.pastel-a {
+  background: linear-gradient(135deg, #e9f2ff, #d7e5ff);
+}
+
+.pastel-b {
+  background: linear-gradient(135deg, #e7f8ff, #d2eefe);
+}
+
+.pastel-c {
+  background: linear-gradient(135deg, #eafaf0, #d4f1e1);
+}
+
+.pastel-d {
+  background: linear-gradient(135deg, #fff7e8, #ffe8cf);
+}
+
+.section-icon span.material-symbols-rounded {
+  font-size: 28px;
+  color: #111827;
+}
+
+.section-text h2 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.section-text p {
+  margin: 1px 0 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.section-chevron {
+  margin-left: auto;
+  font-size: 20px;
+  color: #9ca3af;
+}
+
+/* Sottoschermate */
+
+.view {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.subscreen {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.subheader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: #fbfbff; /* bianco sporco, più chiaro */
+  box-shadow:
+    0 6px 14px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+.subheader h2 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.back-btn {
+  font-size: 0.8rem;
+}
+
+/* Card comuni */
+
+.card {
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 16px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  padding: 14px 12px;
+}
+
+.card-elevated {
+  box-shadow:
+    0 12px 24px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+.card h2,
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Liste prenotazioni / spesa */
+
+.booking-list,
+.shopping-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.booking-list li,
+.shopping-list li {
+  border-radius: 12px;
+  border: 1px solid rgba(209, 213, 224, 0.7);
+  padding: 8px 10px;
+  font-size: 0.92rem;
+  background: linear-gradient(135deg, #f9fbff, #fdfdff);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
+/* Riga prenotazione con avatar */
+
+.booking-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.booking-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.88rem;
+  color: #111827;
+}
+
+/* Inline form */
+
+.inline-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.inline-form input {
+  flex: 1;
+}
+
+/* Date-time wrapper */
+
+.datetime-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, #f8f9ff, #f3f4ff);
+  border: 1px solid rgba(209, 213, 224, 0.9);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+}
+
+.datetime-icon {
+  font-size: 20px;
+  color: #4b5563;
+}
+
+.datetime-text {
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+/* Pulizie: zone */
+
+.cleaning-zones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cleaning-zone-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 11px;
+  border-radius: 14px;
+  border: 1px solid rgba(209, 213, 224, 0.9);
+  background: linear-gradient(135deg, #f7faff, #f3f4ff);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.cleaning-zone-label {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.cleaning-zone-assignee {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #4b5563;
+}
+
+/* Storico pulizie */
+
+.cleaning-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cleaning-history-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cleaning-history-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.history-avatars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Doccia: slot */
+
+.slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slot-item {
+  border-radius: 12px;
+  border: 1px solid rgba(209, 213, 224, 0.9);
+  padding: 8px 10px;
+  background: linear-gradient(135deg, #f7faff, #fefeff);
+  font-size: 0.88rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+}
+
+.slot-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.slot-title {
+  font-weight: 600;
+  color: #111827;
+}
+
+.slot-meta {
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+.slot-warning {
+  font-size: 0.8rem;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Lavagna ridisegnata - testo centrato */
+
+.blackboard-card {
+  margin-top: 6px;
+  border-radius: 22px;
+  padding: 10px 10px 14px;
+  background: radial-gradient(circle at top left, #e7f1ff, #f7ecff 40%, #eaf5ff 100%);
+  box-shadow:
+    0 12px 26px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+.blackboard-title {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.blackboard {
+  position: relative;
+  border-radius: 20px;
+  padding: 18px;
+  min-height: 220px;
+  background: linear-gradient(135deg, #dfe9f7, #f0e7ff);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 8px 20px rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.blackboard::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.04), transparent 55%),
+    radial-gradient(circle at 80% 25%, rgba(255, 255, 255, 0.04), transparent 55%),
+    radial-gradient(circle at 25% 80%, rgba(255, 255, 255, 0.03), transparent 55%),
+    linear-gradient(135deg, #232824, #171c18 45%, #111511);
+  box-shadow:
+    inset 0 0 12px rgba(0, 0, 0, 0.75),
+    inset 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.blackboard::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 14px;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.08) 0, transparent 60%),
+    radial-gradient(circle at 80% 25%, rgba(255, 255, 255, 0.05) 0, transparent 65%),
+    radial-gradient(circle at 30% 82%, rgba(255, 255, 255, 0.04) 0, transparent 60%),
+    radial-gradient(circle at 70% 90%, rgba(255, 255, 255, 0.03) 0, transparent 70%);
+  opacity: 0.24;
+  pointer-events: none;
+}
+
+.blackboard-text {
+  position: relative;
+  z-index: 1;
+  color: #f3f4f2;
+  font-family: "Comic Sans MS", "Chalkboard SE", "Bradley Hand", cursive;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: pre-line;
+  letter-spacing: 0.03em;
+  opacity: 0.92;
+  text-shadow:
+    0.3px 0.6px 0 rgba(255, 255, 255, 0.4),
+    -0.2px -0.5px 0 rgba(255, 255, 255, 0.35),
+    0 0 1px rgba(255, 255, 255, 0.4);
+  filter: contrast(1.02) brightness(1.0);
+  max-width: 90%;
+}
+
+.blackboard-placeholder {
+  opacity: 0.7;
+  font-size: 0.95rem;
+}
+
+.blackboard-author {
+  position: relative;
+  z-index: 1;
+  margin-top: 8px;
+  color: #e2e2e2;
+  font-size: 0.75rem;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Dialogo generico (lavagna + conflitto doccia) */
+
+.dialog {
+  margin-top: 8px;
+  border-radius: 14px;
+  padding: 10px;
+  font-size: 0.82rem;
+  color: #4b5563;
+}
+
+.dialog.hidden {
+  display: none;
+}
+
+.dialog-buttons {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+/* DateTime Picker - POPUP MODALE */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 40;
+}
+
+.dialog-overlay.hidden {
+  display: none;
+}
+
+.dialog-card {
+  max-width: 420px;
+  width: 100%;
+  border-radius: 18px;
+  padding: 10px 10px 10px;
+  box-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+/* DateTime Picker custom */
+
+.dtp-title {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.dtp-layout {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dtp-days,
+.dtp-times {
+  flex: 1;
+  max-height: 210px;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8f9ff, #f3f4ff);
+  padding: 6px;
+}
+
+.dtp-day-btn,
+.dtp-time-btn {
+  width: 100%;
+  border-radius: 10px;
+  border: none;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  text-align: left;
+  margin-bottom: 4px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111827;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.06);
+}
+
+.dtp-day-btn:last-child,
+.dtp-time-btn:last-child {
+  margin-bottom: 0;
+}
+
+.dtp-day-btn span {
+  display: block;
+}
+
+.dtp-day-name {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.dtp-day-date {
+  font-weight: 600;
+}
+
+.dtp-selected {
+  background: linear-gradient(135deg, #0a84ff, #007aff);
+  color: #ffffff;
+  box-shadow:
+    0 5px 12px rgba(0, 122, 255, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+/* Footer */
+
+footer {
+  padding: 8px 12px 10px;
+  border-top: 1px solid rgba(209, 213, 224, 0.8);
+  font-size: 0.75rem;
+  text-align: center;
+  color: #6b7280;
+  background: rgba(248, 250, 252, 0.9);
+}
+
+/* Material Symbols */
+
+.material-symbols-rounded {
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+
+/* Micro-animazioni */
+
+.tap-animate {
+  transition:
+    transform 0.14s ease-out,
+    box-shadow 0.14s ease-out,
+    background-color 0.14s ease-out,
+    opacity 0.14s ease-out;
+}
+
+.tap-animate:active {
+  transform: scale(0.97) translateY(1px);
+  box-shadow:
+    0 6px 14px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(148, 163, 184, 0.4);
+  opacity: 0.96;
+}
+
+/* Animazione d'ingresso per elementi / viste */
+
+.anim-enter {
+  animation: fadeSlideIn 0.18s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-function formatDateTimeShortFromDate(date) {
-  if (!date || isNaN(date.getTime())) return "Data non valida";
-  const day = date.toLocaleDateString("it-IT", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-  const time = date.toLocaleTimeString("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return `${day} alle ${time}`;
+/* Animazione per il check della lista spesa: solo checkbox, minimale */
+
+.check-anim {
+  animation: tickPop 0.14s ease-out;
 }
 
-function formatDateTimeShort(iso) {
-  const d = new Date(iso);
-  return formatDateTimeShortFromDate(d);
-}
-
-// Aggiunge una piccola animazione di ingresso (fade+slide) a elementi nuovi
-function applyEnterAnimation(el) {
-  if (!el) return;
-  el.classList.add("anim-enter");
-  el.addEventListener(
-    "animationend",
-    () => {
-      el.classList.remove("anim-enter");
-    },
-    { once: true }
-  );
-}
-
-// Avatar piccolo per l'utente corrente
-function createUserSmallAvatar() {
-  const div = document.createElement("div");
-  div.className = "small-avatar";
-  const name = getUserFullName();
-  const color = getAvatarRingColor(name);
-  div.style.setProperty("--avatar-ring", color);
-
-  if (state.user.photoData) {
-    div.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
-    div.textContent = "";
-  } else {
-    const initials =
-      state.user.firstName && state.user.lastName
-        ? (state.user.firstName[0] + state.user.lastName[0]).toUpperCase()
-        : "🙂";
-    div.textContent = initials;
+@keyframes tickPop {
+  0% {
+    transform: scale(0.9);
   }
-  return div;
-}
-
-// Avatar generico da dati + nome (storico pulizie)
-function createSmallAvatarFromData(photoData, name) {
-  const div = document.createElement("div");
-  div.className = "history-avatar";
-  const color = getAvatarRingColor(name);
-  div.style.setProperty("--avatar-ring", color);
-
-  if (photoData) {
-    div.style.backgroundImage = `url(data:image/jpeg;base64,${photoData})`;
-    div.textContent = "";
-  } else {
-    const initials =
-      name && name.trim().length >= 1
-        ? name
-            .split(" ")
-            .filter(Boolean)
-            .map((p) => p[0])
-            .join("")
-            .toUpperCase()
-        : "🙂";
-    div.textContent = initials;
-  }
-  return div;
-}
-
-// ---------- Pulizia automatica prenotazioni ----------
-function cleanupLaundryReservations() {
-  const now = Date.now();
-  const list = state.group.laundryReservations || [];
-  state.group.laundryReservations = list.filter((res) => {
-    const startMs = new Date(res.startTime).getTime();
-    if (!startMs) return false;
-    return now < startMs + 48 * MS_HOUR;
-  });
-}
-
-function cleanupShowerBookings() {
-  const now = Date.now();
-  const list = state.group.showerBookings || [];
-  state.group.showerBookings = list.filter((b) => {
-    const startMs = new Date(b.startTime).getTime();
-    if (!startMs) return false;
-    return now < startMs + MS_90_MIN;
-  });
-}
-
-// Intervallo [s1,e1) e [s2,e2) si sovrappongono?
-function intervalsOverlap(s1, e1, s2, e2) {
-  return s1 < e2 && s2 < e1;
-}
-
-function recomputeShowerConflicts() {
-  const list = state.group.showerBookings || [];
-  list.forEach((b) => (b.hasConflict = false));
-  for (let i = 0; i < list.length; i++) {
-    const bi = list[i];
-    const s1 = new Date(bi.startTime).getTime();
-    const e1 = s1 + MS_90_MIN;
-    for (let j = i + 1; j < list.length; j++) {
-      const bj = list[j];
-      const s2 = new Date(bj.startTime).getTime();
-      const e2 = s2 + MS_90_MIN;
-      if (intervalsOverlap(s1, e1, s2, e2)) {
-        bi.hasConflict = true;
-        bj.hasConflict = true;
-      }
-    }
+  100% {
+    transform: scale(1);
   }
 }
-
-// ---------- Settimana per le pulizie ----------
-function getCurrentWeekKey() {
-  const now = new Date();
-  const day = now.getDay(); // 0=dom, 1=lun
-  const diffToMonday = (day + 6) % 7;
-  const monday = new Date(now);
-  monday.setHours(0, 0, 0, 0);
-  monday.setDate(now.getDate() - diffToMonday);
-
-  const year = monday.getFullYear();
-  const oneJan = new Date(year, 0, 1);
-  const week = Math.ceil(((monday - oneJan) / 86400000 + oneJan.getDay() + 1) / 7);
-
-  return `${year}-W${week}`;
-}
-
-function resetCleaningWeekIfNeeded() {
-  const currentKey = getCurrentWeekKey();
-  if (state.group.cleaningWeekKey && state.group.cleaningWeekKey !== currentKey) {
-    CLEANING_ZONES.forEach((zone) => {
-      const ass = state.group.cleaningAssignments[zone];
-      if (ass) {
-        if (!state.group.cleaningHistory[zone]) state.group.cleaningHistory[zone] = [];
-        state.group.cleaningHistory[zone].unshift({
-          userName: ass.userName,
-          photoData: ass.photoData,
-          timestamp: ass.timestamp,
-        });
-      }
-      state.group.cleaningAssignments[zone] = null;
-    });
-  }
-  state.group.cleaningWeekKey = currentKey;
-}
-
-// ---------- Render: LOGIN ----------
-function renderLoginAvatar() {
-  const avatarEl = document.getElementById("loginAvatarPreview");
-  if (!avatarEl) return;
-
-  avatarEl.innerHTML = "";
-  const color = getAvatarRingColor(getUserFullName());
-  avatarEl.style.setProperty("--avatar-ring", color);
-
-  if (state.user.photoData) {
-    avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
-    avatarEl.style.backgroundSize = "cover";
-    avatarEl.style.backgroundPosition = "center";
-  } else {
-    avatarEl.style.backgroundImage = "none";
-    const span = document.createElement("span");
-    span.textContent = "🙂";
-    avatarEl.appendChild(span);
-  }
-}
-
-function renderLoginForm() {
-  const firstInput = document.getElementById("loginFirstName");
-  const lastInput = document.getElementById("loginLastName");
-
-  if (firstInput) firstInput.value = state.user.firstName || "";
-  if (lastInput) lastInput.value = state.user.lastName || "";
-  renderLoginAvatar();
-}
-
-// ---------- Render: PROFILO ----------
-function renderProfileScreen() {
-  const firstInput = document.getElementById("profileFirstName");
-  const lastInput = document.getElementById("profileLastName");
-  const avatarEl = document.getElementById("profileAvatarPreview");
-
-  if (firstInput) firstInput.value = state.user.firstName || "";
-  if (lastInput) lastInput.value = state.user.lastName || "";
-
-  if (avatarEl) {
-    avatarEl.innerHTML = "";
-    const color = getAvatarRingColor(getUserFullName());
-    avatarEl.style.setProperty("--avatar-ring", color);
-    if (state.user.photoData) {
-      avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
-      avatarEl.style.backgroundSize = "cover";
-      avatarEl.style.backgroundPosition = "center";
-    } else {
-      avatarEl.style.backgroundImage = "none";
-      const span = document.createElement("span");
-      span.textContent = "🙂";
-      avatarEl.appendChild(span);
-    }
-  }
-}
-
-// ---------- Render: TESTATA MAIN ----------
-function renderHeader() {
-  const groupNameEl = document.getElementById("groupName");
-  const userNameEl = document.getElementById("currentUserName");
-  const avatarEl = document.getElementById("currentUserAvatar");
-
-  if (groupNameEl) groupNameEl.textContent = state.group.name || "Corso Montevecchio 66";
-  if (userNameEl) userNameEl.textContent = getUserFullName();
-
-  if (avatarEl) {
-    const color = getAvatarRingColor(getUserFullName());
-    avatarEl.style.setProperty("--avatar-ring", color);
-
-    if (state.user.photoData) {
-      avatarEl.style.backgroundImage = `url(data:image/jpeg;base64,${state.user.photoData})`;
-      avatarEl.textContent = "";
-    } else {
-      avatarEl.style.backgroundImage = "none";
-      const initials =
-        state.user.firstName && state.user.lastName
-          ? (state.user.firstName[0] + state.user.lastName[0]).toUpperCase()
-          : "🙂";
-      avatarEl.textContent = initials;
-    }
-  }
-}
-
-// ---------- Render: LAVATRICE ----------
-function renderLaundryScreen() {
-  cleanupLaundryReservations();
-  saveState();
-
-  const listEl = document.getElementById("laundryList");
-  const msgEl = document.getElementById("laundryStatusMessage");
-  const displayText = document.getElementById("laundryDateTimeText");
-  if (!listEl) return;
-
-  // aggiorna testo datetime lavatrice
-  if (displayText) {
-    if (selectedLaundryDateTime) {
-      displayText.textContent = formatDateTimeShortFromDate(selectedLaundryDateTime);
-    } else {
-      displayText.textContent = "Scegli giorno e ora";
-    }
-  }
-
-  listEl.innerHTML = "";
-  const list = state.group.laundryReservations || [];
-
-  if (list.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = "Nessuna lavatrice prenotata.";
-    applyEnterAnimation(li);
-    listEl.appendChild(li);
-  } else {
-    list
-      .slice()
-      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-      .forEach((res) => {
-        const li = document.createElement("li");
-
-        const row = document.createElement("div");
-        row.className = "booking-row";
-
-        const avatar = createUserSmallAvatar();
-        const textBox = document.createElement("div");
-        textBox.className = "booking-text";
-
-        const start = new Date(res.startTime);
-        const end = new Date(start.getTime() + 48 * MS_HOUR);
-
-        const line1 = document.createElement("div");
-        line1.textContent = res.userName;
-
-        const line2 = document.createElement("div");
-        line2.textContent = `${formatDateTimeShort(
-          res.startTime
-        )} → fino al ${formatDateTimeShort(end.toISOString())}`;
-
-        const line3 = document.createElement("div");
-        line3.textContent = res.rackLabel;
-
-        textBox.appendChild(line1);
-        textBox.appendChild(line2);
-        textBox.appendChild(line3);
-
-        row.appendChild(avatar);
-        row.appendChild(textBox);
-        li.appendChild(row);
-        applyEnterAnimation(li);
-        listEl.appendChild(li);
-      });
-  }
-
-  if (msgEl && list.length < 2) {
-    msgEl.textContent = "";
-  }
-}
-
-// ---------- Render: DOCCIA ----------
-function renderShowerScreen() {
-  cleanupShowerBookings();
-  recomputeShowerConflicts();
-  saveState();
-
-  const container = document.getElementById("showerSlots");
-  const displayText = document.getElementById("showerDateTimeText");
-  if (!container) return;
-  container.innerHTML = "";
-
-  // aggiorna testo datetime doccia
-  if (displayText) {
-    if (selectedShowerDateTime) {
-      displayText.textContent = formatDateTimeShortFromDate(selectedShowerDateTime);
-    } else {
-      displayText.textContent = "Scegli giorno e ora";
-    }
-  }
-
-  const list = (state.group.showerBookings || [])
-    .slice()
-    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-
-  for (let i = 0; i < 5; i++) {
-    const slotDiv = document.createElement("div");
-    slotDiv.className = "slot-item";
-
-    const booking = list[i];
-    if (!booking) {
-      const title = document.createElement("div");
-      title.className = "slot-title";
-      title.textContent = `Slot ${i + 1}: Libero`;
-      slotDiv.appendChild(title);
-    } else {
-      const header = document.createElement("div");
-      header.className = "slot-header";
-
-      const avatar = createUserSmallAvatar();
-      const title = document.createElement("div");
-      title.className = "slot-title";
-      title.textContent = `Slot ${i + 1}: ${booking.userName}`;
-
-      header.appendChild(avatar);
-      header.appendChild(title);
-
-      const meta = document.createElement("div");
-      meta.className = "slot-meta";
-      meta.textContent = `Doccia il ${formatDateTimeShort(booking.startTime)} (90 min)`;
-
-      slotDiv.appendChild(header);
-      slotDiv.appendChild(meta);
-
-      if (booking.hasConflict) {
-        const warn = document.createElement("div");
-        warn.className = "slot-warning";
-        warn.innerHTML = "⚠️ Possibile boiler scarico (slot sovrapposto ad altre docce)";
-        slotDiv.appendChild(warn);
-      }
-    }
-
-    applyEnterAnimation(slotDiv);
-    container.appendChild(slotDiv);
-  }
-}
-
-// ---------- Render: LAVAGNA HOME ----------
-function renderHomeBlackboard() {
-  const textEl = document.getElementById("homeBlackboardText");
-  const authorEl = document.getElementById("homeBlackboardAuthor");
-  if (!textEl || !authorEl) return;
-
-  const msg = state.group.board && state.group.board[0];
-
-  if (!msg) {
-    textEl.textContent = "Tocca per scrivere un pensiero di casa";
-    textEl.classList.add("blackboard-placeholder");
-    authorEl.textContent = "";
-  } else {
-    textEl.textContent = msg.text;
-    textEl.classList.remove("blackboard-placeholder");
-    authorEl.textContent = "";
-  }
-}
-
-// ---------- Render: LISTA SPESA ----------
-function renderShopping() {
-  const listEl = document.getElementById("shoppingList");
-  if (!listEl) return;
-  listEl.innerHTML = "";
-
-  const items = state.group.shoppingChecklist || [];
-  items.forEach((item) => {
-    const li = document.createElement("li");
-
-    const label = document.createElement("label");
-    label.style.display = "flex";
-    label.style.alignItems = "center";
-    label.style.gap = "8px";
-    label.style.width = "100%";
-
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = !!item.checked;
-    cb.addEventListener("change", () => {
-      item.checked = cb.checked;
-      saveState();
-      cb.classList.add("check-anim");
-      setTimeout(() => cb.classList.remove("check-anim"), 140);
-    });
-
-    const span = document.createElement("span");
-    span.textContent = item.label;
-
-    label.appendChild(cb);
-    label.appendChild(span);
-    li.appendChild(label);
-    applyEnterAnimation(li);
-    listEl.appendChild(li);
-  });
-}
-
-// ---------- Render: PULIZIE ----------
-function renderCleaning() {
-  // Assegnazioni attuali
-  CLEANING_ZONES.forEach((zone) => {
-    const ass = state.group.cleaningAssignments[zone];
-    const assEl = document.getElementById("cleaning-assignee-" + zone);
-    if (!assEl) return;
-
-    assEl.innerHTML = "";
-
-    if (!ass) {
-      assEl.textContent = "Libero";
-      assEl.style.color = "#777";
-    } else {
-      assEl.style.color = "#000";
-      const avatar = createSmallAvatarFromData(ass.photoData, ass.userName);
-      avatar.className = "small-avatar";
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = ass.userName;
-      assEl.appendChild(avatar);
-      assEl.appendChild(nameSpan);
-    }
-  });
-
-  // Storico
-  CLEANING_ZONES.forEach((zone) => {
-    const container = document.getElementById("history-" + zone);
-    if (!container) return;
-    container.innerHTML = "";
-    const history = state.group.cleaningHistory[zone] || [];
-    history.forEach((h) => {
-      const avatar = createSmallAvatarFromData(h.photoData, h.userName);
-      applyEnterAnimation(avatar);
-      container.appendChild(avatar);
-    });
-  });
-}
-
-// ---------- Eventi: LOGIN ----------
-function setupLoginEvents() {
-  const cameraPanel = document.getElementById("cameraPanel");
-  const video = document.getElementById("cameraVideo");
-  const openCameraBtn = document.getElementById("openCameraBtn");
-  const closeCameraBtn = document.getElementById("closeCameraBtn");
-  const takePhotoBtn = document.getElementById("takePhotoBtn");
-  const fileInput = document.getElementById("photoFileInput");
-  const registerBtn = document.getElementById("registerBtn");
-
-  // Apri fotocamera
-  if (openCameraBtn && cameraPanel && video) {
-    openCameraBtn.addEventListener("click", async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("La fotocamera non è supportata da questo browser. Usa la galleria.");
-        return;
-      }
-      try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = cameraStream;
-        cameraPanel.classList.remove("hidden");
-      } catch (e) {
-        console.error(e);
-        alert("Impossibile accedere alla fotocamera. Controlla i permessi.");
-      }
-    });
-  }
-
-  // Chiudi fotocamera
-  if (closeCameraBtn && cameraPanel) {
-    closeCameraBtn.addEventListener("click", () => {
-      cameraPanel.classList.add("hidden");
-      if (cameraStream) {
-        cameraStream.getTracks().forEach((t) => t.stop());
-        cameraStream = null;
-      }
-    });
-  }
-
-  // Scatta foto
-  if (takePhotoBtn && video && cameraPanel) {
-    takePhotoBtn.addEventListener("click", async () => {
-      try {
-        const base64 = await captureFrameFromVideo(video);
-        state.user.photoData = base64;
-        saveState();
-        renderLoginAvatar();
-        cameraPanel.classList.add("hidden");
-        if (cameraStream) {
-          cameraStream.getTracks().forEach((t) => t.stop());
-          cameraStream = null;
-        }
-      } catch (e) {
-        console.error(e);
-        alert("Errore nello scattare la foto. Riprova.");
-      }
-    });
-  }
-
-  // Carica da galleria
-  if (fileInput) {
-    fileInput.addEventListener("change", async () => {
-      const file = fileInput.files && fileInput.files[0];
-      if (!file) return;
-      try {
-        const base64 = await readImageFileAsBase64Thumbnail(file);
-        state.user.photoData = base64;
-        saveState();
-        renderLoginAvatar();
-      } catch (e) {
-        console.error(e);
-        alert("Errore nel caricare la foto dalla galleria.");
-      }
-    });
-  }
-
-  // Registrazione / Entra
-  if (registerBtn) {
-    registerBtn.addEventListener("click", () => {
-      const firstInput = document.getElementById("loginFirstName");
-      const lastInput = document.getElementById("loginLastName");
-      const firstName = (firstInput && firstInput.value.trim()) || "";
-      const lastName = (lastInput && lastInput.value.trim()) || "";
-
-      if (!firstName || !lastName) {
-        alert("Inserisci sia nome che cognome.");
-        return;
-      }
-
-      state.user.firstName = firstName;
-      state.user.lastName = lastName;
-      saveState();
-
-      renderHeader();
-      runSplashThen("main"); // splash anche dopo registrazione
-    });
-  }
-}
-
-// ---------- Eventi: PROFILO ----------
-function setupProfileEvents() {
-  const cameraPanel = document.getElementById("profileCameraPanel");
-  const video = document.getElementById("profileCameraVideo");
-  const openCameraBtn = document.getElementById("profileOpenCameraBtn");
-  const closeCameraBtn = document.getElementById("profileCloseCameraBtn");
-  const takePhotoBtn = document.getElementById("profileTakePhotoBtn");
-  const fileInput = document.getElementById("profilePhotoFileInput");
-  const saveBtn = document.getElementById("profileSaveBtn");
-
-  // Apri fotocamera profilo
-  if (openCameraBtn && cameraPanel && video) {
-    openCameraBtn.addEventListener("click", async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("La fotocamera non è supportata da questo browser. Usa la galleria.");
-        return;
-      }
-      try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = cameraStream;
-        cameraPanel.classList.remove("hidden");
-      } catch (e) {
-        console.error(e);
-        alert("Impossibile accedere alla fotocamera. Controlla i permessi.");
-      }
-    });
-  }
-
-  // Chiudi fotocamera profilo
-  if (closeCameraBtn && cameraPanel) {
-    closeCameraBtn.addEventListener("click", () => {
-      cameraPanel.classList.add("hidden");
-      if (cameraStream) {
-        cameraStream.getTracks().forEach((t) => t.stop());
-        cameraStream = null;
-      }
-    });
-  }
-
-  // Scatta foto profilo
-  if (takePhotoBtn && video && cameraPanel) {
-    takePhotoBtn.addEventListener("click", async () => {
-      try {
-        const base64 = await captureFrameFromVideo(video);
-        state.user.photoData = base64;
-        saveState();
-        renderProfileScreen();
-        renderHeader();
-        renderLaundryScreen();
-        renderShowerScreen();
-        renderCleaning();
-        cameraPanel.classList.add("hidden");
-        if (cameraStream) {
-          cameraStream.getTracks().forEach((t) => t.stop());
-          cameraStream = null;
-        }
-      } catch (e) {
-        console.error(e);
-        alert("Errore nello scattare la foto. Riprova.");
-      }
-    });
-  }
-
-  // Carica da galleria profilo
-  if (fileInput) {
-    fileInput.addEventListener("change", async () => {
-      const file = fileInput.files && fileInput.files[0];
-      if (!file) return;
-      try {
-        const base64 = await readImageFileAsBase64Thumbnail(file);
-        state.user.photoData = base64;
-        saveState();
-        renderProfileScreen();
-        renderHeader();
-        renderLaundryScreen();
-        renderShowerScreen();
-        renderCleaning();
-      } catch (e) {
-        console.error(e);
-        alert("Errore nel caricare la foto dalla galleria.");
-      }
-    });
-  }
-
-  // Salva nome/cognome
-  if (saveBtn) {
-    saveBtn.addEventListener("click", () => {
-      const firstInput = document.getElementById("profileFirstName");
-      const lastInput = document.getElementById("profileLastName");
-      const firstName = (firstInput && firstInput.value.trim()) || "";
-      const lastName = (lastInput && lastInput.value.trim()) || "";
-
-      if (!firstName || !lastName) {
-        alert("Inserisci sia nome che cognome.");
-        return;
-      }
-
-      state.user.firstName = firstName;
-      state.user.lastName = lastName;
-      saveState();
-      renderHeader();
-      alert("Profilo aggiornato!");
-    });
-  }
-}
-
-// ---------- Splash logic ----------
-function runSplashThen(target) {
-  const splash = document.getElementById("splashScreen");
-  const login = document.getElementById("loginScreen");
-  const main = document.getElementById("mainScreen");
-
-  if (!splash || !login || !main) {
-    if (target === "login") {
-      showScreen("login");
-    } else {
-      showScreen("main");
-      showMainSection("home");
-    }
-    return;
-  }
-
-  login.style.display = "none";
-  main.style.display = "none";
-
-  splash.style.display = "flex";
-  // forza reflow per trigger di transizione
-  void splash.offsetWidth;
-  splash.classList.add("splash-visible");
-
-  // mantieni splash per ~3 secondi (2.6s wait + 0.45s fade)
-  setTimeout(() => {
-    splash.classList.add("splash-fade-out");
-  }, 2600);
-
-  splash.addEventListener(
-    "transitionend",
-    (e) => {
-      if (e.propertyName !== "opacity") return;
-      splash.style.display = "none";
-      splash.classList.remove("splash-visible", "splash-fade-out");
-      if (target === "login") {
-        showScreen("login");
-      } else {
-        showScreen("main");
-        showMainSection("home");
-      }
-    },
-    { once: true }
-  );
-}
-
-// ---------- DateTime Picker custom ----------
-
-function getNext7Days() {
-  const days = [];
-  const now = new Date();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(now);
-    d.setDate(now.getDate() + i);
-    d.setHours(0, 0, 0, 0);
-    days.push(d);
-  }
-  return days;
-}
-
-function getDefaultTimes() {
-  const times = [];
-  for (let h = 7; h <= 22; h++) {
-    for (let m of [0, 30]) {
-      times.push({ hour: h, minute: m });
-    }
-  }
-  return times;
-}
-
-function sameDay(d1, d2) {
-  return (
-    d1 &&
-    d2 &&
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-  );
-}
-
-function openDateTimePicker(context) {
-  dtpContext = context;
-
-  const dialog = document.getElementById("dateTimePickerDialog");
-  const titleEl = document.getElementById("dtpTitle");
-  const daysEl = document.getElementById("dtpDays");
-  const timesEl = document.getElementById("dtpTimes");
-  if (!dialog || !daysEl || !timesEl || !titleEl) return;
-
-  titleEl.textContent =
-    context === "laundry"
-      ? "Scegli data e ora per la lavatrice"
-      : "Scegli data e ora per la doccia";
-
-  daysEl.innerHTML = "";
-  timesEl.innerHTML = "";
-
-  const days = getNext7Days();
-  const times = getDefaultTimes();
-
-  // valori pre-selezionati
-  let currentSelected =
-    context === "laundry" ? selectedLaundryDateTime : selectedShowerDateTime;
-  if (!currentSelected) {
-    currentSelected = new Date();
-  }
-
-  dtpSelectedDay = days.find((d) => sameDay(d, currentSelected)) || days[0];
-  dtpSelectedTime = {
-    hour: currentSelected.getHours(),
-    minute: currentSelected.getMinutes() < 30 ? 0 : 30,
-  };
-
-  // render days
-  days.forEach((day) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "dtp-day-btn tap-animate";
-
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "dtp-day-name";
-    nameSpan.textContent = day.toLocaleDateString("it-IT", {
-      weekday: "short",
-    });
-
-    const dateSpan = document.createElement("span");
-    dateSpan.className = "dtp-day-date";
-    dateSpan.textContent = day.toLocaleDateString("it-IT", {
-      day: "2-digit",
-      month: "2-digit",
-    });
-
-    btn.appendChild(nameSpan);
-    btn.appendChild(dateSpan);
-
-    if (sameDay(day, dtpSelectedDay)) {
-      btn.classList.add("dtp-selected");
-    }
-
-    btn.addEventListener("click", () => {
-      dtpSelectedDay = day;
-      document.querySelectorAll(".dtp-day-btn").forEach((b) =>
-        b.classList.remove("dtp-selected")
-      );
-      btn.classList.add("dtp-selected");
-    });
-
-    daysEl.appendChild(btn);
-  });
-
-  // render times
-  times.forEach((t) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "dtp-time-btn tap-animate";
-    const hh = String(t.hour).padStart(2, "0");
-    const mm = String(t.minute).padStart(2, "0");
-    btn.textContent = `${hh}:${mm}`;
-
-    if (
-      t.hour === dtpSelectedTime.hour &&
-      t.minute === dtpSelectedTime.minute
-    ) {
-      btn.classList.add("dtp-selected");
-    }
-
-    btn.addEventListener("click", () => {
-      dtpSelectedTime = { hour: t.hour, minute: t.minute };
-      document.querySelectorAll(".dtp-time-btn").forEach((b) =>
-        b.classList.remove("dtp-selected")
-      );
-      btn.classList.add("dtp-selected");
-    });
-
-    timesEl.appendChild(btn);
-  });
-
-  dialog.classList.remove("hidden");
-}
-
-function setupDateTimePickerEvents() {
-  const dtpCancelBtn = document.getElementById("dtpCancelBtn");
-  const dtpOkBtn = document.getElementById("dtpOkBtn");
-  const dialog = document.getElementById("dateTimePickerDialog");
-
-  if (dtpCancelBtn && dialog) {
-    dtpCancelBtn.addEventListener("click", () => {
-      dialog.classList.add("hidden");
-      dtpContext = null;
-    });
-  }
-
-  if (dtpOkBtn && dialog) {
-    dtpOkBtn.addEventListener("click", () => {
-      if (!dtpSelectedDay || !dtpSelectedTime) {
-        alert("Seleziona sia un giorno che un orario.");
-        return;
-      }
-      const d = new Date(dtpSelectedDay);
-      d.setHours(dtpSelectedTime.hour, dtpSelectedTime.minute, 0, 0);
-
-      if (dtpContext === "laundry") {
-        selectedLaundryDateTime = d;
-        renderLaundryScreen();
-      } else if (dtpContext === "shower") {
-        selectedShowerDateTime = d;
-        renderShowerScreen();
-      }
-
-      dialog.classList.add("hidden");
-      dtpContext = null;
-    });
-  }
-
-  // click su "display" lavatrice / doccia
-  const laundryDisplay = document.getElementById("laundryDateTimeDisplay");
-  if (laundryDisplay) {
-    laundryDisplay.addEventListener("click", () => openDateTimePicker("laundry"));
-  }
-  const showerDisplay = document.getElementById("showerDateTimeDisplay");
-  if (showerDisplay) {
-    showerDisplay.addEventListener("click", () => openDateTimePicker("shower"));
-  }
-}
-
-// ---------- Eventi: MAIN ----------
-function setupMainEvents() {
-  // Navigazione sezioni
-  document.querySelectorAll(".section-tile").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const section = btn.dataset.section;
-      renderHeader();
-      showMainSection(section);
-    });
-  });
-
-  document.querySelectorAll(".back-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      renderHeader();
-      showMainSection("home");
-    });
-  });
-
-  // Clic su avatar o nome → profilo
-  const userNameEl = document.getElementById("currentUserName");
-  const userAvatarEl = document.getElementById("currentUserAvatar");
-  [userNameEl, userAvatarEl].forEach((el) => {
-    if (el) {
-      el.addEventListener("click", () => {
-        renderProfileScreen();
-        showMainSection("profile");
-      });
-    }
-  });
-
-  // LAVATRICE
-  const laundryBtn = document.getElementById("laundryBookBtn");
-  if (laundryBtn) {
-    laundryBtn.addEventListener("click", () => {
-      const msgEl = document.getElementById("laundryStatusMessage");
-
-      if (!selectedLaundryDateTime) {
-        alert("Seleziona prima data e ora della lavatrice.");
-        return;
-      }
-
-      const start = new Date(selectedLaundryDateTime);
-      if (isNaN(start.getTime())) {
-        alert("Data/ora non valida.");
-        return;
-      }
-
-      const now = new Date();
-      if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
-        if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
-          return;
-        }
-      }
-
-      cleanupLaundryReservations();
-      const list = state.group.laundryReservations || [];
-
-      if (list.length >= 2) {
-        const sorted = list
-          .slice()
-          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-        const first = sorted[0];
-        const firstEndMs = new Date(first.startTime).getTime() + 48 * MS_HOUR;
-        const diffMs = Math.max(0, firstEndMs - Date.now());
-        const hoursLeft = Math.ceil(diffMs / MS_HOUR);
-        const text = `Al momento non ci sono stendini liberi. Il primo si libera tra circa ${hoursLeft} ore (prenotato da ${first.userName}).`;
-        if (msgEl) msgEl.textContent = text;
-        alert(text);
-        return;
-      }
-
-      let rackLabel = "Stendino 1";
-      if (list.length === 1) {
-        rackLabel = list[0].rackLabel === "Stendino 1" ? "Stendino 2" : "Stendino 2";
-      }
-
-      list.push({
-        id: Date.now(),
-        userName: getUserFullName(),
-        startTime: start.toISOString(),
-        rackLabel,
-      });
-
-      state.group.laundryReservations = list;
-      saveState();
-      if (msgEl) msgEl.textContent = "";
-      renderLaundryScreen();
-      alert(`Lavatrice prenotata con ${rackLabel} il ${formatDateTimeShort(start.toISOString())}.`);
-    });
-  }
-
-  // DOCCIA
-  const showerBtn = document.getElementById("showerBookBtn");
-  const conflictDialog = document.getElementById("showerConflictDialog");
-  const changeSlotBtn = document.getElementById("showerChangeSlotBtn");
-  const confirmSlotBtn = document.getElementById("showerConfirmSlotBtn");
-
-  function addShowerBooking(startDate, forceConflict) {
-    cleanupShowerBookings();
-    const list = state.group.showerBookings || [];
-    const newBooking = {
-      id: Date.now(),
-      userName: getUserFullName(),
-      startTime: startDate.toISOString(),
-      hasConflict: !!forceConflict,
-    };
-    list.push(newBooking);
-    state.group.showerBookings = list;
-    recomputeShowerConflicts();
-    saveState();
-    renderShowerScreen();
-  }
-
-  if (showerBtn) {
-    showerBtn.addEventListener("click", () => {
-      if (!selectedShowerDateTime) {
-        alert("Seleziona prima data e ora della doccia.");
-        return;
-      }
-      const start = new Date(selectedShowerDateTime);
-      if (isNaN(start.getTime())) {
-        alert("Data/ora non valida.");
-        return;
-      }
-
-      const now = new Date();
-      if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
-        if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
-          return;
-        }
-      }
-
-      cleanupShowerBookings();
-      const list = state.group.showerBookings || [];
-      let hasOverlap = false;
-      const startMs = start.getTime();
-      const endMs = startMs + MS_90_MIN;
-
-      for (const b of list) {
-        const s2 = new Date(b.startTime).getTime();
-        const e2 = s2 + MS_90_MIN;
-        if (intervalsOverlap(startMs, endMs, s2, e2)) {
-          hasOverlap = true;
-          break;
-        }
-      }
-
-      if (!hasOverlap) {
-        addShowerBooking(start, false);
-        alert(`Doccia prenotata il ${formatDateTimeShort(start.toISOString())}.`);
-        return;
-      }
-
-      pendingShowerBooking = {
-        startTime: start,
-      };
-      if (conflictDialog) conflictDialog.classList.remove("hidden");
-    });
-  }
-
-  if (changeSlotBtn && conflictDialog) {
-    changeSlotBtn.addEventListener("click", () => {
-      pendingShowerBooking = null;
-      conflictDialog.classList.add("hidden");
-    });
-  }
-
-  if (confirmSlotBtn && conflictDialog) {
-    confirmSlotBtn.addEventListener("click", () => {
-      if (pendingShowerBooking) {
-        addShowerBooking(pendingShowerBooking.startTime, true);
-        alert(
-          `Doccia prenotata comunque il ${formatDateTimeShort(
-            pendingShowerBooking.startTime.toISOString()
-          )}. Ricorda di controllare il boiler!`
-        );
-      }
-      pendingShowerBooking = null;
-      conflictDialog.classList.add("hidden");
-    });
-  }
-
-  // LISTA SPESA - aggiunta elementi
-  const shoppingAddForm = document.getElementById("shoppingAddForm");
-  const shoppingAddInput = document.getElementById("shoppingAddInput");
-  if (shoppingAddForm && shoppingAddInput) {
-    shoppingAddForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const text = shoppingAddInput.value.trim();
-      if (!text) return;
-      if (!state.group.shoppingChecklist) state.group.shoppingChecklist = [];
-      state.group.shoppingChecklist.push({
-        id: Date.now().toString(),
-        label: text,
-        checked: false,
-      });
-      shoppingAddInput.value = "";
-      saveState();
-      renderShopping();
-    });
-  }
-
-  // PULIZIE - click sulle zone (toggle + override)
-  document.querySelectorAll(".cleaning-zone-row").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const zone = btn.dataset.zone;
-      if (!zone) return;
-      resetCleaningWeekIfNeeded();
-
-      const ass = state.group.cleaningAssignments[zone];
-      const myName = getUserFullName();
-      const myPhoto = state.user.photoData;
-
-      if (!ass) {
-        state.group.cleaningAssignments[zone] = {
-          userName: myName,
-          photoData: myPhoto,
-          timestamp: new Date().toISOString(),
-        };
-        saveState();
-        renderCleaning();
-        return;
-      }
-
-      if (ass.userName === myName) {
-        const okRemove = confirm("Vuoi rimuovere la tua prenotazione per questa zona?");
-        if (!okRemove) return;
-        state.group.cleaningAssignments[zone] = null;
-        saveState();
-        renderCleaning();
-        return;
-      }
-
-      const ok = confirm(
-        `Questa zona è già presa in carico da ${ass.userName}.\nVuoi assegnarla a te?`
-      );
-      if (!ok) return;
-
-      state.group.cleaningAssignments[zone] = {
-        userName: myName,
-        photoData: myPhoto,
-        timestamp: new Date().toISOString(),
-      };
-      saveState();
-      renderCleaning();
-    });
-  });
-
-  // LAVAGNA di casa - click e dialogo
-  const blackboardEl = document.getElementById("homeBlackboard");
-  const blackboardDialog = document.getElementById("blackboardDialog");
-  const blackboardInput = document.getElementById("blackboardInput");
-  const blackboardCancelBtn = document.getElementById("blackboardCancelBtn");
-  const blackboardSaveBtn = document.getElementById("blackboardSaveBtn");
-
-  if (blackboardEl && blackboardDialog && blackboardInput) {
-    blackboardEl.addEventListener("click", () => {
-      const msg = state.group.board && state.group.board[0];
-      blackboardInput.value = msg ? msg.text : "";
-      blackboardDialog.classList.remove("hidden");
-    });
-  }
-
-  if (blackboardCancelBtn && blackboardDialog) {
-    blackboardCancelBtn.addEventListener("click", () => {
-      blackboardDialog.classList.add("hidden");
-    });
-  }
-
-  if (blackboardSaveBtn && blackboardDialog && blackboardInput) {
-    blackboardSaveBtn.addEventListener("click", () => {
-      const text = blackboardInput.value.trim();
-      if (!text) {
-        alert("Scrivi qualcosa prima di salvare.");
-        return;
-      }
-      const now = new Date();
-      const dateStr = now.toLocaleString("it-IT", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const msg = {
-        text,
-        author: getUserFullName(),
-        date: dateStr,
-      };
-      if (!state.group.board) state.group.board = [];
-      state.group.board.unshift(msg);
-      saveState();
-      blackboardDialog.classList.add("hidden");
-      renderHomeBlackboard();
-    });
-  }
-}
-
-// ---------- Init ----------
-loadState();
-
-window.addEventListener("DOMContentLoaded", () => {
-  setupLoginEvents();
-  setupMainEvents();
-  setupProfileEvents();
-  setupDateTimePickerEvents();
-
-  const hasUser =
-    state.user &&
-    typeof state.user.firstName === "string" &&
-    state.user.firstName.trim().length > 0;
-
-  // Mostra splash all'avvio, poi login o home (con tempo aumentato)
-  runSplashThen(hasUser ? "main" : "login");
-});
