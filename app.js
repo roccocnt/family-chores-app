@@ -1,5 +1,5 @@
 // Stato globale salvato in localStorage (solo su questo dispositivo)
-const STORAGE_KEY = "montevecchio66_app_v5_pastel";
+const STORAGE_KEY = "montevecchio66_app_v5_pastel_logo";
 const MS_HOUR = 60 * 60 * 1000;
 const MS_90_MIN = 90 * 60 * 1000;
 
@@ -804,7 +804,8 @@ function setupLoginEvents() {
       saveState();
 
       renderHeader();
-      runSplashThen("main"); // splash anche dopo registrazione
+      // Splash anche dopo la registrazione, prima di entrare in home
+      runSplashThen("main");
     });
   }
 }
@@ -915,7 +916,7 @@ function setupProfileEvents() {
   }
 }
 
-// ---------- Splash logic ----------
+// ---------- Splash logic con durata ~3s ----------
 function runSplashThen(target) {
   const splash = document.getElementById("splashScreen");
   const login = document.getElementById("loginScreen");
@@ -937,12 +938,16 @@ function runSplashThen(target) {
   main.style.display = "none";
 
   splash.style.display = "flex";
+  // Forziamo un reflow per sicurezza
+  void splash.offsetWidth;
   splash.classList.add("splash-visible");
 
-  // dopo un attimo inizia il fade out
+  // Tempo di permanenza (circa 2.6s + 0.4 animazione = ~3s totali)
+  const VISIBLE_MS = 2600;
+
   setTimeout(() => {
     splash.classList.add("splash-fade-out");
-  }, 650);
+  }, VISIBLE_MS);
 
   splash.addEventListener(
     "transitionend",
@@ -950,6 +955,7 @@ function runSplashThen(target) {
       if (e.propertyName !== "opacity") return;
       splash.style.display = "none";
       splash.classList.remove("splash-visible", "splash-fade-out");
+
       if (target === "login") {
         showScreen("login");
       } else {
@@ -1280,6 +1286,6 @@ window.addEventListener("DOMContentLoaded", () => {
     typeof state.user.firstName === "string" &&
     state.user.firstName.trim().length > 0;
 
-  // Mostra splash all'avvio, poi login o home
+  // Mostra splash all'avvio, poi login o home, con durata ~3s
   runSplashThen(hasUser ? "main" : "login");
 });
