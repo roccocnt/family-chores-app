@@ -1,5 +1,5 @@
 // Stato globale salvato in localStorage (solo su questo dispositivo)
-const STORAGE_KEY = "montevecchio66_app_v6_pastel";
+const STORAGE_KEY = "montevecchio66_app_v7_pastel";
 const MS_HOUR = 60 * 60 * 1000;
 const MS_90_MIN = 90 * 60 * 1000;
 
@@ -202,9 +202,11 @@ function showScreen(name) {
   if (name === "login") {
     login.style.display = "flex";
     main.style.display = "none";
+    applyEnterAnimation(login);
   } else {
     login.style.display = "none";
     main.style.display = "flex";
+    applyEnterAnimation(main);
   }
 }
 
@@ -236,6 +238,7 @@ function showMainSection(section) {
   });
 
   currentViewElement = newView;
+  applyEnterAnimation(newView);
 
   if (section === "home") {
     renderHomeBlackboard();
@@ -271,7 +274,7 @@ function formatDateTimeShort(iso) {
   return formatDateTimeShortFromDate(d);
 }
 
-// Aggiunge una piccola animazione di ingresso (fade+slide) a elementi nuovi
+// Aggiunge una piccola animazione di ingresso (fade+slide) a elementi nuovi / viste
 function applyEnterAnimation(el) {
   if (!el) return;
   el.classList.add("anim-enter");
@@ -503,7 +506,6 @@ function renderLaundryScreen() {
   const displayText = document.getElementById("laundryDateTimeText");
   if (!listEl) return;
 
-  // aggiorna testo datetime lavatrice
   if (displayText) {
     if (selectedLaundryDateTime) {
       displayText.textContent = formatDateTimeShortFromDate(selectedLaundryDateTime);
@@ -576,7 +578,6 @@ function renderShowerScreen() {
   if (!container) return;
   container.innerHTML = "";
 
-  // aggiorna testo datetime doccia
   if (displayText) {
     if (selectedShowerDateTime) {
       displayText.textContent = formatDateTimeShortFromDate(selectedShowerDateTime);
@@ -689,7 +690,6 @@ function renderShopping() {
 
 // ---------- Render: PULIZIE ----------
 function renderCleaning() {
-  // Assegnazioni attuali
   CLEANING_ZONES.forEach((zone) => {
     const ass = state.group.cleaningAssignments[zone];
     const assEl = document.getElementById("cleaning-assignee-" + zone);
@@ -711,7 +711,6 @@ function renderCleaning() {
     }
   });
 
-  // Storico
   CLEANING_ZONES.forEach((zone) => {
     const container = document.getElementById("history-" + zone);
     if (!container) return;
@@ -735,7 +734,6 @@ function setupLoginEvents() {
   const fileInput = document.getElementById("photoFileInput");
   const registerBtn = document.getElementById("registerBtn");
 
-  // Apri fotocamera
   if (openCameraBtn && cameraPanel && video) {
     openCameraBtn.addEventListener("click", async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -753,7 +751,6 @@ function setupLoginEvents() {
     });
   }
 
-  // Chiudi fotocamera
   if (closeCameraBtn && cameraPanel) {
     closeCameraBtn.addEventListener("click", () => {
       cameraPanel.classList.add("hidden");
@@ -764,7 +761,6 @@ function setupLoginEvents() {
     });
   }
 
-  // Scatta foto
   if (takePhotoBtn && video && cameraPanel) {
     takePhotoBtn.addEventListener("click", async () => {
       try {
@@ -784,7 +780,6 @@ function setupLoginEvents() {
     });
   }
 
-  // Carica da galleria
   if (fileInput) {
     fileInput.addEventListener("change", async () => {
       const file = fileInput.files && fileInput.files[0];
@@ -801,7 +796,6 @@ function setupLoginEvents() {
     });
   }
 
-  // Registrazione / Entra
   if (registerBtn) {
     registerBtn.addEventListener("click", () => {
       const firstInput = document.getElementById("loginFirstName");
@@ -834,7 +828,6 @@ function setupProfileEvents() {
   const fileInput = document.getElementById("profilePhotoFileInput");
   const saveBtn = document.getElementById("profileSaveBtn");
 
-  // Apri fotocamera profilo
   if (openCameraBtn && cameraPanel && video) {
     openCameraBtn.addEventListener("click", async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -852,7 +845,6 @@ function setupProfileEvents() {
     });
   }
 
-  // Chiudi fotocamera profilo
   if (closeCameraBtn && cameraPanel) {
     closeCameraBtn.addEventListener("click", () => {
       cameraPanel.classList.add("hidden");
@@ -863,7 +855,6 @@ function setupProfileEvents() {
     });
   }
 
-  // Scatta foto profilo
   if (takePhotoBtn && video && cameraPanel) {
     takePhotoBtn.addEventListener("click", async () => {
       try {
@@ -887,7 +878,6 @@ function setupProfileEvents() {
     });
   }
 
-  // Carica da galleria profilo
   if (fileInput) {
     fileInput.addEventListener("change", async () => {
       const file = fileInput.files && fileInput.files[0];
@@ -908,7 +898,6 @@ function setupProfileEvents() {
     });
   }
 
-  // Salva nome/cognome
   if (saveBtn) {
     saveBtn.addEventListener("click", () => {
       const firstInput = document.getElementById("profileFirstName");
@@ -950,11 +939,10 @@ function runSplashThen(target) {
   main.style.display = "none";
 
   splash.style.display = "flex";
-  // forza reflow per trigger di transizione
   void splash.offsetWidth;
   splash.classList.add("splash-visible");
 
-  // mantieni splash per ~3 secondi (2.6s wait + 0.45s fade)
+  // ~3 secondi totali (2.6s wait + 0.45s fade)
   setTimeout(() => {
     splash.classList.add("splash-fade-out");
   }, 2600);
@@ -976,7 +964,7 @@ function runSplashThen(target) {
   );
 }
 
-// ---------- DateTime Picker custom ----------
+// ---------- DateTime Picker custom (POPUP) ----------
 
 function getNext7Days() {
   const days = [];
@@ -1030,7 +1018,6 @@ function openDateTimePicker(context) {
   const days = getNext7Days();
   const times = getDefaultTimes();
 
-  // valori pre-selezionati
   let currentSelected =
     context === "laundry" ? selectedLaundryDateTime : selectedShowerDateTime;
   if (!currentSelected) {
@@ -1043,7 +1030,6 @@ function openDateTimePicker(context) {
     minute: currentSelected.getMinutes() < 30 ? 0 : 30,
   };
 
-  // render days
   days.forEach((day) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -1080,7 +1066,6 @@ function openDateTimePicker(context) {
     daysEl.appendChild(btn);
   });
 
-  // render times
   times.forEach((t) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -1144,7 +1129,6 @@ function setupDateTimePickerEvents() {
     });
   }
 
-  // click su "display" lavatrice / doccia
   const laundryDisplay = document.getElementById("laundryDateTimeDisplay");
   if (laundryDisplay) {
     laundryDisplay.addEventListener("click", () => openDateTimePicker("laundry"));
@@ -1157,7 +1141,6 @@ function setupDateTimePickerEvents() {
 
 // ---------- Eventi: MAIN ----------
 function setupMainEvents() {
-  // Navigazione sezioni
   document.querySelectorAll(".section-tile").forEach((btn) => {
     btn.addEventListener("click", () => {
       const section = btn.dataset.section;
@@ -1173,7 +1156,6 @@ function setupMainEvents() {
     });
   });
 
-  // Clic su avatar o nome → profilo
   const userNameEl = document.getElementById("currentUserName");
   const userAvatarEl = document.getElementById("currentUserAvatar");
   [userNameEl, userAvatarEl].forEach((el) => {
@@ -1466,6 +1448,6 @@ window.addEventListener("DOMContentLoaded", () => {
     typeof state.user.firstName === "string" &&
     state.user.firstName.trim().length > 0;
 
-  // Mostra splash all'avvio, poi login o home (con tempo aumentato)
+  // Splash all'avvio, poi login o home
   runSplashThen(hasUser ? "main" : "login");
 });
