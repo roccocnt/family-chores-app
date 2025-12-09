@@ -59,8 +59,8 @@ body {
 /* Logo: cade dall'alto in modo lento e morbido */
 
 .splash-logo {
-  width: 96px;
-  height: 96px;
+  width: 120px;
+  height: 120px;
   border-radius: 32px;
   background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4));
   display: flex;
@@ -78,8 +78,8 @@ body {
 }
 
 .splash-logo img {
-  width: 64px;
-  height: 64px;
+  width: 100px;
+  height: 100px;
   border-radius: 20px;
   object-fit: contain;
 }
@@ -168,7 +168,7 @@ body {
   gap: 6px;
 
   opacity: 0;
-  animation: splashLoaderFadeIn 1.2s ease-out 3.0s forwards; /* compare dopo le animazioni di logo+titolo */
+  animation: splashLoaderFadeIn 1.2s ease-out 4.5s forwards; /* compare dopo le animazioni di logo+titolo */
 }
 
 @keyframes splashLoaderFadeIn {
@@ -189,7 +189,7 @@ body {
   background: rgba(15, 23, 42, 0.55);
   transform-origin: center bottom;
   opacity: 0.4;
-  animation: splashDotBounce 0.7s ease-in-out infinite alternate;
+  animation: splashDotBounce 1.2s ease-in-out infinite alternate;
 }
 
 .splash-loader-dot:nth-child(2) {
@@ -206,8 +206,8 @@ body {
     opacity: 0.4;
   }
   50% {
-    transform: translateY(-4px) scale(1.1);
-    opacity: 1;
+    transform: translateY(-3px) scale(1.05);
+    opacity: 0.9;
   }
   100% {
     transform: translateY(0) scale(1);
