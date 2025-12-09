@@ -924,6 +924,8 @@ function setupProfileEvents() {
 
 // timeout per chiudere lo splash (startup / post-login)
 let splashTimeoutId = null;
+let splashFadeOutTimeoutId = null;
+let splashNavigated = false;
 
 // Configura la splash in base alla variante: "startup" (apertura app) o "postLogin"
 function setupSplashVisualVariant(variant) {
@@ -1004,28 +1006,34 @@ function runSplashThen(target, options) {
   // Configura loader o messaggio
   setupSplashVisualVariant(variant);
 
-  // Nascondi login/main
-  login.style.display = "none";
-  main.style.display = "none";
-
-  // Reset timeout precedente se esiste
+  // Cancella stati precedenti
+  splashNavigated = false;
   if (splashTimeoutId) {
     clearTimeout(splashTimeoutId);
     splashTimeoutId = null;
   }
+  if (splashFadeOutTimeoutId) {
+    clearTimeout(splashFadeOutTimeoutId);
+    splashFadeOutTimeoutId = null;
+  }
 
-  // Mostra splash
+  // Nascondi login/main
+  login.style.display = "none";
+  main.style.display = "none";
+
+  // Mostra splash (fade-in)
   splash.style.display = "flex";
   splash.classList.remove("splash-fade-out");
   void splash.offsetWidth; // reflow per resettare animazioni/transizioni
   splash.classList.add("splash-visible");
 
-  // Durate:
-  // startup: ~3s anim + ~4s pausa hero ≈ 7s totali
-  // postLogin: ~1s anim messaggio + ~3s visibile ≈ 4s totali
-  const FADE_OUT_DELAY = variant === "startup" ? 7000 : 4000;
+  const FADE_OUT_DELAY = variant === "startup" ? 9000 : 4000; // ms
+  const FADE_OUT_DURATION = 700; // ms, deve combaciare con il transition su .splash-screen
 
   function navigateAfterSplash() {
+    if (splashNavigated) return;
+    splashNavigated = true;
+
     splash.style.display = "none";
     splash.classList.remove("splash-visible", "splash-fade-out");
     splash.onclick = null;
@@ -1041,34 +1049,37 @@ function runSplashThen(target, options) {
   }
 
   function startFadeOut() {
+    if (splashNavigated) return;
+
     if (splashTimeoutId) {
       clearTimeout(splashTimeoutId);
       splashTimeoutId = null;
     }
+    if (splashFadeOutTimeoutId) {
+      clearTimeout(splashFadeOutTimeoutId);
+      splashFadeOutTimeoutId = null;
+    }
+
+    // se è già in fade-out, non rifai tutto
     if (!splash.classList.contains("splash-fade-out")) {
       splash.classList.add("splash-fade-out");
     }
+
+    // aspetta la durata del fade-out e poi naviga
+    splashFadeOutTimeoutId = setTimeout(() => {
+      navigateAfterSplash();
+    }, FADE_OUT_DURATION + 50);
   }
 
-  // Timeout naturale (senza tap)
+  // Timeout naturale (senza tap): aspetta che finiscano animazioni + pausa hero
   splashTimeoutId = setTimeout(() => {
     startFadeOut();
   }, FADE_OUT_DELAY);
 
-  // Tap per skippare lo splash e andare subito oltre
+  // Tap per skippare lo splash e andare subito oltre (ma sempre passando da fade-out)
   splash.onclick = () => {
     startFadeOut();
   };
-
-  // Quando finisce il fade-out (transizione su opacity), navighiamo
-  splash.addEventListener(
-    "transitionend",
-    (e) => {
-      if (e.propertyName !== "opacity") return;
-      navigateAfterSplash();
-    },
-    { once: true }
-  );
 }
 
 // ---------- DateTime Picker custom (POPUP) ----------
