@@ -59,8 +59,8 @@ body {
 /* Logo: cade dall'alto in modo lento e morbido */
 
 .splash-logo {
-  width: 120px;
-  height: 120px;
+  width: 115px;
+  height: 115px;
   border-radius: 32px;
   background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4));
   display: flex;
@@ -78,8 +78,8 @@ body {
 }
 
 .splash-logo img {
-  width: 100px;
-  height: 100px;
+  width: 95px;
+  height: 95px;
   border-radius: 20px;
   object-fit: contain;
 }
