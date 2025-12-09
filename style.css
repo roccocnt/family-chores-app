@@ -35,11 +35,26 @@ body {
   padding: 24px;
   background: linear-gradient(180deg, #e7f0ff 0%, #fdf8ff 100%);
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(10px) scale(1);
   transition:
     opacity 0.6s ease-out,
     transform 0.6s ease-out;
+  position: relative; /* per posizionare loader e messaggi in basso */
 }
+
+/* quando compare */
+.splash-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: splashBgDrift 6s ease-in-out forwards;
+}
+
+/* quando esce */
+.splash-fade-out {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+}
+
 
 .splash-visible {
   opacity: 1;
@@ -54,8 +69,10 @@ body {
 .splash-content {
   text-align: center;
   color: #111827;
+  position: relative;
 }
 
+/* Logo: drop più lento, con “peso” */
 .splash-logo {
   width: 96px;
   height: 96px;
@@ -70,7 +87,10 @@ body {
     0 0 0 3px rgba(255, 255, 255, 0.9);
   position: relative;
   opacity: 0;
-  transform: translateY(-40px) scale(0.85);
+  transform: translateY(-24px) scale(0.9);
+  animation:
+    splashLogoDrop 2.2s cubic-bezier(0.18, 0.9, 0.22, 1.1) 0.2s forwards,
+    splashLogoShadowPulse 1s ease-out 2.1s 1;
 }
 
 .splash-logo img {
@@ -85,7 +105,8 @@ body {
   font-size: 1.2rem;
   font-weight: 600;
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(12px);
+  animation: splashTitleRise 1.9s ease-out 0.6s forwards;
 }
 
 .splash-content p {
@@ -93,44 +114,57 @@ body {
   font-size: 0.9rem;
   color: #6b7280;
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(12px);
+  animation: splashSubtitleFade 1.8s ease-out 1.0s forwards;
 }
 
-/* Attivazione animazioni quando lo splash diventa visibile */
-
-.splash-visible .splash-logo {
-  animation: logoDropBounce 0.9s cubic-bezier(0.22, 0.7, 0.25, 1.1) 0.3s forwards;
-}
-
-.splash-visible .splash-content h1 {
-  animation: titleRise 0.7s ease-out 0.55s forwards;
-}
-
-.splash-visible .splash-content p {
-  animation: subtitleRise 0.7s ease-out 0.75s forwards;
-}
-
-@keyframes logoDropBounce {
+/* Logo che “cade” e rimbalza leggermente */
+@keyframes splashLogoDrop {
   0% {
     opacity: 0;
-    transform: translateY(-40px) scale(0.85);
+    transform: translateY(-40px) scale(0.92);
   }
   40% {
     opacity: 1;
-    transform: translateY(8px) scale(1.05);
+    transform: translateY(4px) scale(1.04);
   }
-  65% {
-    transform: translateY(-4px) scale(0.98);
+  70% {
+    transform: translateY(-2px) scale(0.99);
   }
   100% {
+    opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-@keyframes titleRise {
+/* Piccolo pulse dell’ombra quando il logo “atterra” */
+@keyframes splashLogoShadowPulse {
+  0% {
+    box-shadow:
+      0 12px 26px rgba(15, 23, 42, 0.18),
+      0 0 0 3px rgba(255, 255, 255, 0.9);
+  }
+  50% {
+    box-shadow:
+      0 22px 42px rgba(15, 23, 42, 0.30),
+      0 0 0 3px rgba(255, 255, 255, 0.95);
+  }
+  100% {
+    box-shadow:
+      0 16px 36px rgba(15, 23, 42, 0.18),
+      0 0 0 3px rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* Titolo che “sale” dal basso */
+@keyframes splashTitleRise {
   0% {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(2px);
   }
   100% {
     opacity: 1;
@@ -138,16 +172,89 @@ body {
   }
 }
 
-@keyframes subtitleRise {
+/* Sottotitolo con fade + micro movimento */
+@keyframes splashSubtitleFade {
   0% {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(14px);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(4px);
   }
   100% {
-    opacity: 0.9;
+    opacity: 1;
     transform: translateY(0);
   }
 }
+
+/* Piccola variazione dello sfondo durante l’intro */
+@keyframes splashBgDrift {
+  0% {
+    background-position: 50% 0%;
+    filter: brightness(1);
+  }
+  50% {
+    background-position: 50% 20%;
+    filter: brightness(1.02);
+  }
+  100% {
+    background-position: 50% 0%;
+    filter: brightness(1);
+  }
+}
+
+/* Loader a 3 pallini nella splash iniziale */
+.splash-loader {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  animation: splashLoaderFadeIn 0.6s ease-out 2.2s forwards;
+}
+
+.splash-loader-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.35);
+  animation: splashDotBounce 0.8s ease-in-out infinite;
+}
+
+.splash-loader-dot:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.splash-loader-dot:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes splashLoaderFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* salto leggero dei pallini */
+@keyframes splashDotBounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-5px) scale(1.08);
+  }
+}
+
 
 /* Login / Main */
 
@@ -337,6 +444,41 @@ button:disabled {
   justify-content: space-between;
   gap: 8px;
 }
+
+/* Messaggio in basso nello splash post-login */
+.splash-bottom-message {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  font-size: 0.85rem;
+  color: #4b5563;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow:
+    0 6px 14px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.splash-bottom-visible {
+  animation: splashBottomIn 0.45s ease-out 0.9s forwards;
+}
+
+@keyframes splashBottomIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 
 /* Effetto glass generico */
 
