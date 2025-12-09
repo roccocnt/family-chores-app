@@ -1023,7 +1023,7 @@ function runSplashThen(target, options) {
   // Durate:
   // startup: ~3s anim + ~6s pausa hero ≈ 9s totali
   // postLogin: ~1s anim messaggio + ~3s visibile ≈ 4s totali
-  const FADE_OUT_DELAY = variant === "startup" ? 90000 : 42000;
+  const FADE_OUT_DELAY = variant === "startup" ? 900000 : 420000;
 
   function navigateAfterSplash() {
     splash.style.display = "none";
