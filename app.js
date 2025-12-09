@@ -60,6 +60,8 @@ let state = {
 let cameraStream = null;
 let currentViewElement = null;
 let pendingShowerBooking = null;
+let splashTimeoutId = null;
+
 
 // DateTime Picker stato
 let dtpContext = null; // "laundry" | "shower"
@@ -936,7 +938,9 @@ function setupLoginEvents() {
       saveState();
 
       renderHeader();
-      runSplashThen("main"); // splash anche dopo registrazione
+      // Splash post-login: più corto, con testo "Benvenuto a casa, Nome"
+      runSplashThen("main", { variant: "postLogin" });
+
     });
   }
 }
@@ -1042,22 +1046,157 @@ function setupProfileEvents() {
   }
 }
 
+function setupSplashVisualVariant(variant) {
+  const splash = document.getElementById("splashScreen");
+  if (!splash) return;
+
+  // Loader a 3 pallini
+  let loader = document.getElementById("splashLoader");
+  if (!loader) {
+    loader = document.createElement("div");
+    loader.id = "splashLoader";
+    loader.className = "splash-loader";
+    for (let i = 0; i < 3; i++) {
+      const dot = document.createElement("span");
+      dot.className = "splash-loader-dot";
+      loader.appendChild(dot);
+    }
+    splash.appendChild(loader);
+  }
+
+  // Messaggio in basso post-login
+  let bottomMsg = document.getElementById("splashBottomMessage");
+  if (!bottomMsg) {
+    bottomMsg = document.createElement("div");
+    bottomMsg.id = "splashBottomMessage";
+    bottomMsg.className = "splash-bottom-message";
+    splash.appendChild(bottomMsg);
+  }
+
+  if (variant === "startup") {
+    // Splash apertura app: mostra loader, nessun messaggio
+    loader.style.display = "flex";
+    // reset animazione loader (forza reflow)
+    loader.classList.remove("splash-loader-reset");
+    void loader.offsetWidth;
+    loader.classList.add("splash-loader-reset");
+    bottomMsg.style.display = "none";
+    bottomMsg.classList.remove("splash-bottom-visible");
+  } else {
+    // Splash post-login: nessun loader, solo messaggio "Benvenuto a casa, Nome"
+    loader.style.display = "none";
+
+    const rawFirstName =
+      state.user && typeof state.user.firstName === "string"
+        ? state.user.firstName.trim()
+        : "";
+    const firstNameOnly = rawFirstName.split(" ")[0] || "ospite";
+
+    bottomMsg.textContent = `Benvenuto a casa, ${firstNameOnly}`;
+    bottomMsg.style.display = "block";
+
+    // reset e riavvio animazione del messaggio
+    bottomMsg.classList.remove("splash-bottom-visible");
+    void bottomMsg.offsetWidth;
+    bottomMsg.classList.add("splash-bottom-visible");
+  }
+}
+
 // ---------- Splash logic ----------
-function runSplashThen(target) {
+function runSplashThen(target, options = {}) {
+  const variant = options.variant || "startup"; // "startup" | "postLogin"
+
   const splash = document.getElementById("splashScreen");
   const login = document.getElementById("loginScreen");
   const main = document.getElementById("mainScreen");
 
   if (!splash || !login || !main) {
+    // fallback se qualcosa manca
     if (target === "login") {
       showScreen("login");
+      renderLoginForm();
     } else {
-      renderHeader();
       showScreen("main");
+      renderHeader();
       showMainSection("home");
     }
     return;
   }
+
+  // Configura loader/messaggio in base alla variante
+  setupSplashVisualVariant(variant);
+
+  // Nascondi login/main per far vedere solo lo splash
+  login.style.display = "none";
+  main.style.display = "none";
+
+  // Reset eventuali timeout precedenti
+  if (splashTimeoutId) {
+    clearTimeout(splashTimeoutId);
+    splashTimeoutId = null;
+  }
+
+  // Mostra splash
+  splash.style.display = "flex";
+  // reset classi animazione
+  splash.classList.remove("splash-fade-out");
+  void splash.offsetWidth; // forza reflow
+  splash.classList.add("splash-visible");
+
+  // Durate logiche
+  // startup: ~3s anim logo+testi + 5s pausa hero = ~8s prima di fade out
+  // postLogin: ~2s anim + ~1s pausa = ~3s prima di fade out
+  const FADE_OUT_DELAY =
+    variant === "startup"
+      ? 8000 // ms
+      : 2800; // ms
+
+  function navigateAfterSplash() {
+    splash.style.display = "none";
+    splash.classList.remove("splash-visible", "splash-fade-out");
+    splash.onclick = null;
+
+    if (target === "login") {
+      showScreen("login");
+      renderLoginForm();
+    } else {
+      showScreen("main");
+      renderHeader();
+      showMainSection("home");
+    }
+  }
+
+  function startFadeOut() {
+    if (splashTimeoutId) {
+      clearTimeout(splashTimeoutId);
+      splashTimeoutId = null;
+    }
+    if (!splash.classList.contains("splash-fade-out")) {
+      splash.classList.add("splash-fade-out");
+    }
+  }
+
+  // Timeout naturale (nessun tap)
+  splashTimeoutId = setTimeout(() => {
+    startFadeOut();
+  }, FADE_OUT_DELAY);
+
+  // Tap per saltare subito verso login/home
+  splash.onclick = () => {
+    startFadeOut();
+  };
+
+  // Quando finisce la transizione di opacity, navighiamo
+  splash.addEventListener(
+    "transitionend",
+    (e) => {
+      if (e.propertyName !== "opacity") return;
+      navigateAfterSplash();
+    },
+    { once: true }
+  );
+}
+
 
   login.style.display = "none";
   main.style.display = "none";
@@ -1463,6 +1602,7 @@ window.addEventListener("DOMContentLoaded", () => {
     typeof state.user.firstName === "string" &&
     state.user.firstName.trim().length > 0;
 
-  // Splash all'avvio, poi login o home
-  runSplashThen(hasUser ? "main" : "login");
+  // Splash all'avvio, poi login o home (variante "startup" con intro lunga)
+  runSplashThen(hasUser ? "main" : "login", { variant: "startup" });
 });
+
