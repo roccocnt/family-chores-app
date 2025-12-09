@@ -168,7 +168,7 @@ body {
   gap: 6px;
 
   opacity: 0;
-  animation: splashLoaderFadeIn 1.2s ease-out 4.5s forwards; /* compare dopo le animazioni di logo+titolo */
+  animation: splashLoaderFadeIn 1.2s ease-out 4.0s forwards; /* compare dopo le animazioni di logo+titolo */
 }
 
 @keyframes splashLoaderFadeIn {
