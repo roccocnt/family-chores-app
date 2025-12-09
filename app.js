@@ -1021,9 +1021,9 @@ function runSplashThen(target, options) {
   splash.classList.add("splash-visible");
 
   // Durate:
-  //  - startup: ~3s anim + ~5s pausa = 8s prima del fade-out
-  //  - postLogin: ~2s anim + ~1s pausa = 2.8s
-  const FADE_OUT_DELAY = variant === "startup" ? 8000 : 2800;
+  // startup: ~3s anim + ~6s pausa hero ≈ 9s totali
+  // postLogin: ~1s anim messaggio + ~3s visibile ≈ 4s totali
+  const FADE_OUT_DELAY = variant === "startup" ? 9000 : 4200;
 
   function navigateAfterSplash() {
     splash.style.display = "none";
