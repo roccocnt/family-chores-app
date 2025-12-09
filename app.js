@@ -1103,8 +1103,9 @@ function setupSplashVisualVariant(variant) {
 }
 
 // ---------- Splash logic ----------
-function runSplashThen(target, options = {}) {
-  const variant = options.variant || "startup"; // "startup" | "postLogin"
+function runSplashThen(target, options) {
+  const opts = options || {};
+  const variant = opts.variant === "postLogin" ? "postLogin" : "startup"; // "startup" | "postLogin"
 
   const splash = document.getElementById("splashScreen");
   const login = document.getElementById("loginScreen");
@@ -1122,6 +1123,75 @@ function runSplashThen(target, options = {}) {
     }
     return;
   }
+
+  // Configura loader / messaggio in basso in base alla variante
+  setupSplashVisualVariant(variant);
+
+  // Nascondi login/main, mostra solo splash
+  login.style.display = "none";
+  main.style.display = "none";
+
+  if (splashTimeoutId) {
+    clearTimeout(splashTimeoutId);
+    splashTimeoutId = null;
+  }
+
+  splash.style.display = "flex";
+  splash.classList.remove("splash-fade-out");
+  void splash.offsetWidth; // reflow per resettare la transizione/animazione
+  splash.classList.add("splash-visible");
+
+  // Durata logica:
+  //  - startup: ~3s anim + 5s pausa hero ≈ 8s
+  //  - postLogin: ~2s anim + ~1s pausa ≈ 3s
+  const FADE_OUT_DELAY = variant === "startup" ? 8000 : 2800;
+
+  function navigateAfterSplash() {
+    splash.style.display = "none";
+    splash.classList.remove("splash-visible", "splash-fade-out");
+    splash.onclick = null;
+
+    if (target === "login") {
+      showScreen("login");
+      renderLoginForm();
+    } else {
+      showScreen("main");
+      renderHeader();
+      showMainSection("home");
+    }
+  }
+
+  function startFadeOut() {
+    if (splashTimeoutId) {
+      clearTimeout(splashTimeoutId);
+      splashTimeoutId = null;
+    }
+    if (!splash.classList.contains("splash-fade-out")) {
+      splash.classList.add("splash-fade-out");
+    }
+  }
+
+  // Timeout naturale (senza tap)
+  splashTimeoutId = setTimeout(() => {
+    startFadeOut();
+  }, FADE_OUT_DELAY);
+
+  // Tap per saltare lo splash subito
+  splash.onclick = () => {
+    startFadeOut();
+  };
+
+  // Quando finisce il fade (transizione su opacity), navighiamo
+  splash.addEventListener(
+    "transitionend",
+    (e) => {
+      if (e.propertyName !== "opacity") return;
+      navigateAfterSplash();
+    },
+    { once: true }
+  );
+}
+
 
   // Configura loader/messaggio in base alla variante
   setupSplashVisualVariant(variant);
