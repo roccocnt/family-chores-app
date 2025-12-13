@@ -523,6 +523,8 @@ function renderLaundryScreen() {
     applyEnterAnimation(li);
     listEl.appendChild(li);
   } else {
+    const currentUserName = getUserFullName();
+
     list
       .slice()
       .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
@@ -557,6 +559,30 @@ function renderLaundryScreen() {
         row.appendChild(avatar);
         row.appendChild(textBox);
         li.appendChild(row);
+
+        // 🔴 3 puntini SOLO se è una prenotazione dell'utente corrente
+        if (res.userName === currentUserName) {
+          const menuBtn = document.createElement("button");
+          menuBtn.type = "button";
+          menuBtn.className = "booking-menu-btn tap-animate";
+          menuBtn.textContent = "⋯";
+
+          menuBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const ok = confirm("Vuoi annullare questa lavatrice?");
+            if (!ok) return;
+
+            const list = state.group.laundryReservations || [];
+            state.group.laundryReservations = list.filter(
+              (r) => r.id !== res.id
+            );
+            saveState();
+            renderLaundryScreen();
+          });
+
+          li.appendChild(menuBtn);
+        }
+
         applyEnterAnimation(li);
         listEl.appendChild(li);
       });
@@ -566,6 +592,7 @@ function renderLaundryScreen() {
     msgEl.textContent = "";
   }
 }
+
 
 // ---------- Render: DOCCIA ----------
 function renderShowerScreen() {
@@ -614,7 +641,9 @@ function renderShowerScreen() {
 
       const meta = document.createElement("div");
       meta.className = "slot-meta";
-      meta.textContent = `Doccia il ${formatDateTimeShort(booking.startTime)} (90 min)`;
+      meta.textContent = `Doccia il ${formatDateTimeShort(
+        booking.startTime
+      )} (90 min)`;
 
       slotDiv.appendChild(header);
       slotDiv.appendChild(meta);
@@ -622,8 +651,34 @@ function renderShowerScreen() {
       if (booking.hasConflict) {
         const warn = document.createElement("div");
         warn.className = "slot-warning";
-        warn.innerHTML = "⚠️ Possibile boiler scarico (slot sovrapposto ad altre docce)";
+        warn.innerHTML =
+          "⚠️ Possibile boiler scarico (slot sovrapposto ad altre docce)";
         slotDiv.appendChild(warn);
+      }
+
+      // 🔴 3 puntini SOLO se è una doccia dell'utente corrente
+      const currentUserName = getUserFullName();
+      if (booking.userName === currentUserName) {
+        const menuBtn = document.createElement("button");
+        menuBtn.type = "button";
+        menuBtn.className = "slot-menu-btn tap-animate";
+        menuBtn.textContent = "⋯";
+
+        menuBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const ok = confirm("Vuoi annullare questa doccia?");
+          if (!ok) return;
+
+          const list = state.group.showerBookings || [];
+          state.group.showerBookings = list.filter(
+            (b) => b.id !== booking.id
+          );
+          recomputeShowerConflicts();
+          saveState();
+          renderShowerScreen();
+        });
+
+        slotDiv.appendChild(menuBtn);
       }
     }
 
