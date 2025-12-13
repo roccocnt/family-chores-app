@@ -920,6 +920,47 @@ main {
   gap: 4px;
 }
 
+/* -------------------------------------------------------
+   ELEMENTI DI PRENOTAZIONE (Lavatrice + Doccia)
+   - Pulsante 3 puntini
+   - Posizionamento relativo SOLO per i riquadri prenotazioni
+-------------------------------------------------------- */
+
+/* Solo i riquadri della lavatrice devono essere "relative" */
+.booking-list li {
+  position: relative;
+}
+
+/* Solo i riquadri delle docce devono essere "relative" */
+.slot-item {
+  position: relative;
+}
+
+/* Pulsante con i 3 puntini (menu azioni) */
+.booking-menu-btn,
+.slot-menu-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 18px;
+  line-height: 1;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  z-index: 5; /* evita sovrapposizioni strane */
+}
+
+/* Effetto hover per un look più pulito */
+.booking-menu-btn:hover,
+.slot-menu-btn:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: #4b5563;
+}
+
+
 /* Lavagna ridisegnata - testo centrato */
 
 .blackboard-card {
