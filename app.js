@@ -1272,18 +1272,18 @@ function bookLaundryFromSelectedDateTime() {
 }
 
 function bookShowerFromSelectedDateTime() {
-  const conflictDialog = document.getElementById("showerConflictDialog");
-
   if (!selectedShowerDateTime) {
     alert("Seleziona prima data e ora della doccia.");
     return;
   }
+
   const start = new Date(selectedShowerDateTime);
   if (isNaN(start.getTime())) {
     alert("Data/ora non valida.");
     return;
   }
 
+  // Se l'orario è nel passato di più di 5 minuti, chiedi conferma
   const now = new Date();
   if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
     if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
@@ -1291,11 +1291,14 @@ function bookShowerFromSelectedDateTime() {
     }
   }
 
+  // Pulisci le prenotazioni scadute
   cleanupShowerBookings();
   const list = state.group.showerBookings || [];
-  let hasOverlap = false;
+
+  // Controlla overlap 90 minuti
   const startMs = start.getTime();
   const endMs = startMs + MS_90_MIN;
+  let hasOverlap = false;
 
   for (const b of list) {
     const s2 = new Date(b.startTime).getTime();
@@ -1306,60 +1309,36 @@ function bookShowerFromSelectedDateTime() {
     }
   }
 
-  function addShowerBooking(startDate, forceConflict) {
-    cleanupShowerBookings();
-    const listInner = state.group.showerBookings || [];
-    const newBooking = {
+  // Se NON c'è overlap → prenota subito
+  if (!hasOverlap) {
+    list.push({
       id: Date.now(),
       userName: getUserFullName(),
-      startTime: startDate.toISOString(),
-      hasConflict: !!forceConflict,
-    };
-    listInner.push(newBooking);
-    state.group.showerBookings = listInner;
+      startTime: start.toISOString(),
+      hasConflict: false,
+    });
+
+    state.group.showerBookings = list;
     recomputeShowerConflicts();
     saveState();
     renderShowerScreen();
-  }
 
-  if (!hasOverlap) {
-    addShowerBooking(start, false);
     alert(`Doccia prenotata il ${formatDateTimeShort(start.toISOString())}.`);
     return;
   }
 
-  // Slot in conflitto: apri dialogo di conferma
-  pendingShowerBooking = {
-    startTime: start,
-  };
-  if (conflictDialog) conflictDialog.classList.remove("hidden");
+  // Se c'è overlap → apri popup modale di conflitto
+  pendingShowerBooking = { startTime: start };
 
-  // Configuro i bottoni del dialogo (solo una volta)
-  const changeSlotBtn = document.getElementById("showerChangeSlotBtn");
-  const confirmSlotBtn = document.getElementById("showerConfirmSlotBtn");
-
-  if (changeSlotBtn && !changeSlotBtn._showerHandled) {
-    changeSlotBtn._showerHandled = true;
-    changeSlotBtn.addEventListener("click", () => {
-      pendingShowerBooking = null;
-      conflictDialog.classList.add("hidden");
-    });
-  }
-
-  if (confirmSlotBtn && !confirmSlotBtn._showerHandled) {
-    confirmSlotBtn._showerHandled = true;
-    confirmSlotBtn.addEventListener("click", () => {
-      if (pendingShowerBooking) {
-        addShowerBooking(pendingShowerBooking.startTime, true);
-        alert(
-          `Doccia prenotata comunque il ${formatDateTimeShort(
-            pendingShowerBooking.startTime.toISOString()
-          )}. Ricorda di controllare il boiler!`
-        );
-      }
-      pendingShowerBooking = null;
-      conflictDialog.classList.add("hidden");
-    });
+  const conflictOverlay = document.getElementById("showerConflictOverlay");
+  if (conflictOverlay) {
+    conflictOverlay.classList.remove("hidden");
+  } else {
+    // Fallback (non dovrebbe mai servire): se l'overlay non esiste, almeno avvisa con alert
+    alert(
+      "⚠️ Attenzione: lo slot che hai scelto si sovrappone a una doccia già prenotata. " +
+        "Puoi scegliere un altro orario oppure prenotare comunque, facendo attenzione al boiler."
+    );
   }
 }
 
@@ -1447,6 +1426,50 @@ function setupMainEvents() {
     laundryBtn.addEventListener("click", () => {
       // Usa lo stesso flusso del DateTime Picker: prenotazione immediata
       bookLaundryFromSelectedDateTime();
+    });
+  }
+  
+  // DOCCIA - popup conflitto slot
+  const conflictOverlay = document.getElementById("showerConflictOverlay");
+  const changeSlotBtn = document.getElementById("showerChangeSlotBtn");
+  const confirmSlotBtn = document.getElementById("showerConfirmSlotBtn");
+
+  if (changeSlotBtn && conflictOverlay) {
+    changeSlotBtn.addEventListener("click", () => {
+      // L'utente vuole scegliere un altro orario
+      pendingShowerBooking = null;
+      conflictOverlay.classList.add("hidden");
+    });
+  }
+
+  if (confirmSlotBtn && conflictOverlay) {
+    confirmSlotBtn.addEventListener("click", () => {
+      // L'utente vuole prenotare comunque lo slot sovrapposto
+      if (pendingShowerBooking) {
+        const start = pendingShowerBooking.startTime;
+        cleanupShowerBookings();
+        const list = state.group.showerBookings || [];
+
+        list.push({
+          id: Date.now(),
+          userName: getUserFullName(),
+          startTime: start.toISOString(),
+          hasConflict: true,
+        });
+
+        state.group.showerBookings = list;
+        recomputeShowerConflicts();
+        saveState();
+        renderShowerScreen();
+
+        alert(
+          `Doccia prenotata comunque il ${formatDateTimeShort(
+            start.toISOString()
+          )}. Ricorda di controllare il boiler!`
+        );
+      }
+      pendingShowerBooking = null;
+      conflictOverlay.classList.add("hidden");
     });
   }
 
