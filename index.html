@@ -258,19 +258,21 @@
             </p>
           </section>
 
-          <!-- Dialogo conflitti slot -->
-          <div id="showerConflictDialog" class="dialog glass hidden">
-            <p>
-              ⚠️ <strong>Attenzione:</strong> lo slot che hai scelto si sovrappone a una doccia già prenotata.
-              Puoi scegliere un altro orario oppure prenotare comunque, facendo attenzione al boiler.
-            </p>
-            <div class="dialog-buttons">
-              <button id="showerChangeSlotBtn" type="button" class="btn-secondary tap-animate">
-                Scegli un altro orario
-              </button>
-              <button id="showerConfirmSlotBtn" type="button" class="primary-btn tap-animate">
-                Prenota comunque
-              </button>
+          <!-- Dialogo conflitti slot - POPUP MODALE -->
+          <div id="showerConflictOverlay" class="dialog-overlay hidden">
+            <div id="showerConflictDialog" class="dialog-card glass">
+              <p>
+                ⚠️ <strong>Attenzione:</strong> lo slot che hai scelto si sovrappone a una doccia già prenotata.
+                Puoi scegliere un altro orario oppure prenotare comunque, facendo attenzione al boiler.
+              </p>
+              <div class="dialog-buttons">
+                <button id="showerChangeSlotBtn" type="button" class="btn-secondary tap-animate">
+                  Scegli un altro orario
+                </button>
+                <button id="showerConfirmSlotBtn" type="button" class="primary-btn tap-animate">
+                  Prenota comunque
+                </button>
+              </div>
             </div>
           </div>
 
