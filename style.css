@@ -1240,3 +1240,21 @@ footer {
     transform: scale(1);
   }
 }
+
+/* ---- Modale globale: bottoni allineati e coerenti ---- */
+#appModalButtons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+#appModalTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Il testo del messaggio un filo più leggibile */
+#appModalMessage {
+  line-height: 1.35;
+}
