@@ -129,6 +129,86 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+// ---------- Modale globale (sostituisce alert/confirm del browser) ----------
+function showAppModal({ title = "", message = "", buttons = [] }) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("appModalOverlay");
+    const titleEl = document.getElementById("appModalTitle");
+    const msgEl = document.getElementById("appModalMessage");
+    const btnsEl = document.getElementById("appModalButtons");
+
+    // Se manca l'HTML della modale, NON usare alert/confirm (richiesta: 0 alert/confirm).
+    // In quel caso, log e risolviamo comunque.
+    if (!overlay || !titleEl || !msgEl || !btnsEl) {
+      console.warn("Modale globale non trovata nel DOM (#appModalOverlay...).");
+      resolve(buttons.find((b) => b.role === "primary")?.value ?? true);
+      return;
+    }
+
+    titleEl.textContent = title;
+    titleEl.style.display = title ? "block" : "none";
+    msgEl.textContent = message;
+
+    btnsEl.innerHTML = "";
+
+    const close = (value) => {
+      overlay.classList.add("hidden");
+      overlay.onclick = null;
+      document.removeEventListener("keydown", onKeyDown);
+      resolve(value);
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        const cancelBtn = buttons.find((b) => b.role === "cancel");
+        if (cancelBtn) close(cancelBtn.value);
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+
+    buttons.forEach((b) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        (b.role === "primary" ? "primary-btn" : "btn-secondary") + " tap-animate";
+      btn.textContent = b.label;
+      btn.addEventListener("click", () => close(b.value));
+      btnsEl.appendChild(btn);
+    });
+
+    // tap fuori = annulla se possibile
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        const cancelBtn = buttons.find((b) => b.role === "cancel");
+        if (cancelBtn) close(cancelBtn.value);
+      }
+    };
+
+    overlay.classList.remove("hidden");
+  });
+}
+
+async function uiAlert(message, title = "Avviso") {
+  await showAppModal({
+    title,
+    message,
+    buttons: [{ label: "OK", value: true, role: "primary" }],
+  });
+}
+
+async function uiConfirm(message, title = "Conferma") {
+  const result = await showAppModal({
+    title,
+    message,
+    buttons: [
+      { label: "Annulla", value: false, role: "cancel" },
+      { label: "OK", value: true, role: "primary" },
+    ],
+  });
+  return !!result;
+}
+
 // ---------- Utility immagini ----------
 function readImageFileAsBase64Thumbnail(file, maxSize = 256) {
   return new Promise((resolve, reject) => {
@@ -176,7 +256,6 @@ function captureFrameFromVideo(video, maxSize = 256) {
 }
 
 // ---------- Utility vari ----------
-
 function getUserFullName() {
   const { firstName, lastName } = state.user;
   const full = `${firstName || ""} ${lastName || ""}`.trim();
@@ -545,9 +624,9 @@ function renderLaundryScreen() {
         line1.textContent = res.userName;
 
         const line2 = document.createElement("div");
-        line2.textContent = `${formatDateTimeShort(
-          res.startTime
-        )} → fino al ${formatDateTimeShort(end.toISOString())}`;
+        line2.textContent = `${formatDateTimeShort(res.startTime)} → fino al ${formatDateTimeShort(
+          end.toISOString()
+        )}`;
 
         const line3 = document.createElement("div");
         line3.textContent = res.rackLabel;
@@ -567,15 +646,13 @@ function renderLaundryScreen() {
           menuBtn.className = "booking-menu-btn tap-animate";
           menuBtn.textContent = "⋯";
 
-          menuBtn.addEventListener("click", (e) => {
+          menuBtn.addEventListener("click", async (e) => {
             e.stopPropagation();
-            const ok = confirm("Vuoi annullare questa lavatrice?");
+            const ok = await uiConfirm("Vuoi annullare questa lavatrice?", "Annulla prenotazione");
             if (!ok) return;
 
-            const list = state.group.laundryReservations || [];
-            state.group.laundryReservations = list.filter(
-              (r) => r.id !== res.id
-            );
+            const listNow = state.group.laundryReservations || [];
+            state.group.laundryReservations = listNow.filter((r) => r.id !== res.id);
             saveState();
             renderLaundryScreen();
           });
@@ -592,7 +669,6 @@ function renderLaundryScreen() {
     msgEl.textContent = "";
   }
 }
-
 
 // ---------- Render: DOCCIA ----------
 function renderShowerScreen() {
@@ -641,9 +717,7 @@ function renderShowerScreen() {
 
       const meta = document.createElement("div");
       meta.className = "slot-meta";
-      meta.textContent = `Doccia il ${formatDateTimeShort(
-        booking.startTime
-      )} (90 min)`;
+      meta.textContent = `Doccia il ${formatDateTimeShort(booking.startTime)} (90 min)`;
 
       slotDiv.appendChild(header);
       slotDiv.appendChild(meta);
@@ -651,8 +725,7 @@ function renderShowerScreen() {
       if (booking.hasConflict) {
         const warn = document.createElement("div");
         warn.className = "slot-warning";
-        warn.innerHTML =
-          "⚠️ Possibile boiler scarico (slot sovrapposto ad altre docce)";
+        warn.innerHTML = "⚠️ Possibile boiler scarico (slot sovrapposto ad altre docce)";
         slotDiv.appendChild(warn);
       }
 
@@ -664,15 +737,13 @@ function renderShowerScreen() {
         menuBtn.className = "slot-menu-btn tap-animate";
         menuBtn.textContent = "⋯";
 
-        menuBtn.addEventListener("click", (e) => {
+        menuBtn.addEventListener("click", async (e) => {
           e.stopPropagation();
-          const ok = confirm("Vuoi annullare questa doccia?");
+          const ok = await uiConfirm("Vuoi annullare questa doccia?", "Annulla prenotazione");
           if (!ok) return;
 
-          const list = state.group.showerBookings || [];
-          state.group.showerBookings = list.filter(
-            (b) => b.id !== booking.id
-          );
+          const listNow = state.group.showerBookings || [];
+          state.group.showerBookings = listNow.filter((b) => b.id !== booking.id);
           recomputeShowerConflicts();
           saveState();
           renderShowerScreen();
@@ -792,7 +863,10 @@ function setupLoginEvents() {
   if (openCameraBtn && cameraPanel && video) {
     openCameraBtn.addEventListener("click", async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("La fotocamera non è supportata da questo browser. Usa la galleria.");
+        await uiAlert(
+          "La fotocamera non è supportata da questo browser. Usa la galleria.",
+          "Fotocamera"
+        );
         return;
       }
       try {
@@ -801,7 +875,7 @@ function setupLoginEvents() {
         cameraPanel.classList.remove("hidden");
       } catch (e) {
         console.error(e);
-        alert("Impossibile accedere alla fotocamera. Controlla i permessi.");
+        await uiAlert("Impossibile accedere alla fotocamera. Controlla i permessi.", "Fotocamera");
       }
     });
   }
@@ -830,7 +904,7 @@ function setupLoginEvents() {
         }
       } catch (e) {
         console.error(e);
-        alert("Errore nello scattare la foto. Riprova.");
+        await uiAlert("Errore nello scattare la foto. Riprova.", "Fotocamera");
       }
     });
   }
@@ -846,20 +920,20 @@ function setupLoginEvents() {
         renderLoginAvatar();
       } catch (e) {
         console.error(e);
-        alert("Errore nel caricare la foto dalla galleria.");
+        await uiAlert("Errore nel caricare la foto dalla galleria.", "Foto profilo");
       }
     });
   }
 
   if (registerBtn) {
-    registerBtn.addEventListener("click", () => {
+    registerBtn.addEventListener("click", async () => {
       const firstInput = document.getElementById("loginFirstName");
       const lastInput = document.getElementById("loginLastName");
       const firstName = (firstInput && firstInput.value.trim()) || "";
       const lastName = (lastInput && lastInput.value.trim()) || "";
 
       if (!firstName || !lastName) {
-        alert("Inserisci sia nome che cognome.");
+        await uiAlert("Inserisci sia nome che cognome.", "Dati mancanti");
         return;
       }
 
@@ -887,7 +961,10 @@ function setupProfileEvents() {
   if (openCameraBtn && cameraPanel && video) {
     openCameraBtn.addEventListener("click", async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("La fotocamera non è supportata da questo browser. Usa la galleria.");
+        await uiAlert(
+          "La fotocamera non è supportata da questo browser. Usa la galleria.",
+          "Fotocamera"
+        );
         return;
       }
       try {
@@ -896,7 +973,7 @@ function setupProfileEvents() {
         cameraPanel.classList.remove("hidden");
       } catch (e) {
         console.error(e);
-        alert("Impossibile accedere alla fotocamera. Controlla i permessi.");
+        await uiAlert("Impossibile accedere alla fotocamera. Controlla i permessi.", "Fotocamera");
       }
     });
   }
@@ -929,7 +1006,7 @@ function setupProfileEvents() {
         }
       } catch (e) {
         console.error(e);
-        alert("Errore nello scattare la foto. Riprova.");
+        await uiAlert("Errore nello scattare la foto. Riprova.", "Fotocamera");
       }
     });
   }
@@ -949,20 +1026,20 @@ function setupProfileEvents() {
         renderCleaning();
       } catch (e) {
         console.error(e);
-        alert("Errore nel caricare la foto dalla galleria.");
+        await uiAlert("Errore nel caricare la foto dalla galleria.", "Foto profilo");
       }
     });
   }
 
   if (saveBtn) {
-    saveBtn.addEventListener("click", () => {
+    saveBtn.addEventListener("click", async () => {
       const firstInput = document.getElementById("profileFirstName");
       const lastInput = document.getElementById("profileLastName");
       const firstName = (firstInput && firstInput.value.trim()) || "";
       const lastName = (lastInput && lastInput.value.trim()) || "";
 
       if (!firstName || !lastName) {
-        alert("Inserisci sia nome che cognome.");
+        await uiAlert("Inserisci sia nome che cognome.", "Dati mancanti");
         return;
       }
 
@@ -970,7 +1047,7 @@ function setupProfileEvents() {
       state.user.lastName = lastName;
       saveState();
       renderHeader();
-      alert("Profilo aggiornato!");
+      await uiAlert("Profilo aggiornato!", "Salvataggio");
     });
   }
 }
@@ -1115,18 +1192,15 @@ function runSplashThen(target, options) {
       splashFadeOutTimeoutId = null;
     }
 
-    // se è già in fade-out, non rifai tutto
     if (!splash.classList.contains("splash-fade-out")) {
       splash.classList.add("splash-fade-out");
     }
 
-    // aspetta la durata del fade-out e poi naviga
     splashFadeOutTimeoutId = setTimeout(() => {
       navigateAfterSplash();
     }, FADE_OUT_DURATION + 50);
   }
 
-  // Timeout naturale (senza tap): aspetta che finiscano animazioni + pausa hero
   splashTimeoutId = setTimeout(() => {
     startFadeOut();
   }, FADE_OUT_DELAY);
@@ -1138,7 +1212,6 @@ function runSplashThen(target, options) {
 }
 
 // ---------- DateTime Picker custom (POPUP) ----------
-
 function getNext7Days() {
   const days = [];
   const now = new Date();
@@ -1193,9 +1266,7 @@ function openDateTimePicker(context) {
 
   let currentSelected =
     context === "laundry" ? selectedLaundryDateTime : selectedShowerDateTime;
-  if (!currentSelected) {
-    currentSelected = new Date();
-  }
+  if (!currentSelected) currentSelected = new Date();
 
   dtpSelectedDay = days.find((d) => sameDay(d, currentSelected)) || days[0];
   dtpSelectedTime = {
@@ -1210,9 +1281,7 @@ function openDateTimePicker(context) {
 
     const nameSpan = document.createElement("span");
     nameSpan.className = "dtp-day-name";
-    nameSpan.textContent = day.toLocaleDateString("it-IT", {
-      weekday: "short",
-    });
+    nameSpan.textContent = day.toLocaleDateString("it-IT", { weekday: "short" });
 
     const dateSpan = document.createElement("span");
     dateSpan.className = "dtp-day-date";
@@ -1224,9 +1293,7 @@ function openDateTimePicker(context) {
     btn.appendChild(nameSpan);
     btn.appendChild(dateSpan);
 
-    if (sameDay(day, dtpSelectedDay)) {
-      btn.classList.add("dtp-selected");
-    }
+    if (sameDay(day, dtpSelectedDay)) btn.classList.add("dtp-selected");
 
     btn.addEventListener("click", () => {
       dtpSelectedDay = day;
@@ -1247,10 +1314,7 @@ function openDateTimePicker(context) {
     const mm = String(t.minute).padStart(2, "0");
     btn.textContent = `${hh}:${mm}`;
 
-    if (
-      t.hour === dtpSelectedTime.hour &&
-      t.minute === dtpSelectedTime.minute
-    ) {
+    if (t.hour === dtpSelectedTime.hour && t.minute === dtpSelectedTime.minute) {
       btn.classList.add("dtp-selected");
     }
 
@@ -1269,41 +1333,41 @@ function openDateTimePicker(context) {
 }
 
 // Funzioni condivise: prenotazione lavatrice / doccia in base all'orario selezionato
-function bookLaundryFromSelectedDateTime() {
+async function bookLaundryFromSelectedDateTime() {
   const msgEl = document.getElementById("laundryStatusMessage");
 
   if (!selectedLaundryDateTime) {
-    alert("Seleziona prima data e ora della lavatrice.");
+    await uiAlert("Seleziona prima data e ora della lavatrice.", "Lavatrice");
     return;
   }
 
   const start = new Date(selectedLaundryDateTime);
   if (isNaN(start.getTime())) {
-    alert("Data/ora non valida.");
+    await uiAlert("Data/ora non valida.", "Lavatrice");
     return;
   }
 
   const now = new Date();
   if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
-    if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
-      return;
-    }
+    const ok = await uiConfirm(
+      "Hai selezionato un orario nel passato. Confermi comunque?",
+      "Orario nel passato"
+    );
+    if (!ok) return;
   }
 
   cleanupLaundryReservations();
   const list = state.group.laundryReservations || [];
 
   if (list.length >= 2) {
-    const sorted = list
-      .slice()
-      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    const sorted = list.slice().sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
     const first = sorted[0];
     const firstEndMs = new Date(first.startTime).getTime() + 48 * MS_HOUR;
     const diffMs = Math.max(0, firstEndMs - Date.now());
     const hoursLeft = Math.ceil(diffMs / MS_HOUR);
     const text = `Al momento non ci sono stendini liberi. Il primo si libera tra circa ${hoursLeft} ore (prenotato da ${first.userName}).`;
     if (msgEl) msgEl.textContent = text;
-    alert(text);
+    await uiAlert(text, "Stendini occupati");
     return;
   }
 
@@ -1323,34 +1387,36 @@ function bookLaundryFromSelectedDateTime() {
   saveState();
   if (msgEl) msgEl.textContent = "";
   renderLaundryScreen();
-  alert(`Lavatrice prenotata con ${rackLabel} il ${formatDateTimeShort(start.toISOString())}.`);
+  await uiAlert(
+    `Lavatrice prenotata con ${rackLabel} il ${formatDateTimeShort(start.toISOString())}.`,
+    "Prenotazione confermata"
+  );
 }
 
-function bookShowerFromSelectedDateTime() {
+async function bookShowerFromSelectedDateTime() {
   if (!selectedShowerDateTime) {
-    alert("Seleziona prima data e ora della doccia.");
+    await uiAlert("Seleziona prima data e ora della doccia.", "Doccia");
     return;
   }
 
   const start = new Date(selectedShowerDateTime);
   if (isNaN(start.getTime())) {
-    alert("Data/ora non valida.");
+    await uiAlert("Data/ora non valida.", "Doccia");
     return;
   }
 
-  // Se l'orario è nel passato di più di 5 minuti, chiedi conferma
   const now = new Date();
   if (start.getTime() < now.getTime() - 5 * 60 * 1000) {
-    if (!confirm("Hai selezionato un orario nel passato. Confermi comunque?")) {
-      return;
-    }
+    const ok = await uiConfirm(
+      "Hai selezionato un orario nel passato. Confermi comunque?",
+      "Orario nel passato"
+    );
+    if (!ok) return;
   }
 
-  // Pulisci le prenotazioni scadute
   cleanupShowerBookings();
   const list = state.group.showerBookings || [];
 
-  // Controlla overlap 90 minuti
   const startMs = start.getTime();
   const endMs = startMs + MS_90_MIN;
   let hasOverlap = false;
@@ -1364,7 +1430,6 @@ function bookShowerFromSelectedDateTime() {
     }
   }
 
-  // Se NON c'è overlap → prenota subito
   if (!hasOverlap) {
     list.push({
       id: Date.now(),
@@ -1378,21 +1443,21 @@ function bookShowerFromSelectedDateTime() {
     saveState();
     renderShowerScreen();
 
-    alert(`Doccia prenotata il ${formatDateTimeShort(start.toISOString())}.`);
+    await uiAlert(`Doccia prenotata il ${formatDateTimeShort(start.toISOString())}.`, "Prenotazione confermata");
     return;
   }
 
-  // Se c'è overlap → apri popup modale di conflitto
+  // Overlap → apri popup conflitto (overlay dedicato)
   pendingShowerBooking = { startTime: start };
 
   const conflictOverlay = document.getElementById("showerConflictOverlay");
   if (conflictOverlay) {
     conflictOverlay.classList.remove("hidden");
   } else {
-    // Fallback (non dovrebbe mai servire): se l'overlay non esiste, almeno avvisa con alert
-    alert(
-      "⚠️ Attenzione: lo slot che hai scelto si sovrappone a una doccia già prenotata. " +
-        "Puoi scegliere un altro orario oppure prenotare comunque, facendo attenzione al boiler."
+    // Se manca l'overlay, avvisa con modale globale (ma senza alert browser)
+    await uiAlert(
+      "⚠️ Attenzione: lo slot che hai scelto si sovrappone a una doccia già prenotata. Puoi scegliere un altro orario oppure prenotare comunque, facendo attenzione al boiler.",
+      "Conflitto doccia"
     );
   }
 }
@@ -1410,9 +1475,9 @@ function setupDateTimePickerEvents() {
   }
 
   if (dtpOkBtn && dialog) {
-    dtpOkBtn.addEventListener("click", () => {
+    dtpOkBtn.addEventListener("click", async () => {
       if (!dtpSelectedDay || !dtpSelectedTime) {
-        alert("Seleziona sia un giorno che un orario.");
+        await uiAlert("Seleziona sia un giorno che un orario.", "Selezione incompleta");
         return;
       }
       const d = new Date(dtpSelectedDay);
@@ -1422,14 +1487,12 @@ function setupDateTimePickerEvents() {
         selectedLaundryDateTime = d;
         dialog.classList.add("hidden");
         dtpContext = null;
-        // Prenotazione immediata
-        bookLaundryFromSelectedDateTime();
+        await bookLaundryFromSelectedDateTime(); // prenotazione immediata
       } else if (dtpContext === "shower") {
         selectedShowerDateTime = d;
         dialog.classList.add("hidden");
         dtpContext = null;
-        // Prenotazione immediata
-        bookShowerFromSelectedDateTime();
+        await bookShowerFromSelectedDateTime(); // prenotazione immediata
       } else {
         dialog.classList.add("hidden");
         dtpContext = null;
@@ -1478,12 +1541,11 @@ function setupMainEvents() {
   // LAVATRICE
   const laundryBtn = document.getElementById("laundryBookBtn");
   if (laundryBtn) {
-    laundryBtn.addEventListener("click", () => {
-      // Usa lo stesso flusso del DateTime Picker: prenotazione immediata
-      bookLaundryFromSelectedDateTime();
+    laundryBtn.addEventListener("click", async () => {
+      await bookLaundryFromSelectedDateTime();
     });
   }
-  
+
   // DOCCIA - popup conflitto slot
   const conflictOverlay = document.getElementById("showerConflictOverlay");
   const changeSlotBtn = document.getElementById("showerChangeSlotBtn");
@@ -1491,15 +1553,13 @@ function setupMainEvents() {
 
   if (changeSlotBtn && conflictOverlay) {
     changeSlotBtn.addEventListener("click", () => {
-      // L'utente vuole scegliere un altro orario
       pendingShowerBooking = null;
       conflictOverlay.classList.add("hidden");
     });
   }
 
   if (confirmSlotBtn && conflictOverlay) {
-    confirmSlotBtn.addEventListener("click", () => {
-      // L'utente vuole prenotare comunque lo slot sovrapposto
+    confirmSlotBtn.addEventListener("click", async () => {
       if (pendingShowerBooking) {
         const start = pendingShowerBooking.startTime;
         cleanupShowerBookings();
@@ -1517,10 +1577,9 @@ function setupMainEvents() {
         saveState();
         renderShowerScreen();
 
-        alert(
-          `Doccia prenotata comunque il ${formatDateTimeShort(
-            start.toISOString()
-          )}. Ricorda di controllare il boiler!`
+        await uiAlert(
+          `Doccia prenotata comunque il ${formatDateTimeShort(start.toISOString())}. Ricorda di controllare il boiler!`,
+          "Prenotazione confermata"
         );
       }
       pendingShowerBooking = null;
@@ -1531,9 +1590,8 @@ function setupMainEvents() {
   // DOCCIA
   const showerBtn = document.getElementById("showerBookBtn");
   if (showerBtn) {
-    showerBtn.addEventListener("click", () => {
-      // Usa lo stesso flusso del DateTime Picker: prenotazione immediata
-      bookShowerFromSelectedDateTime();
+    showerBtn.addEventListener("click", async () => {
+      await bookShowerFromSelectedDateTime();
     });
   }
 
@@ -1559,7 +1617,7 @@ function setupMainEvents() {
 
   // PULIZIE - click sulle zone (toggle + override)
   document.querySelectorAll(".cleaning-zone-row").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const zone = btn.dataset.zone;
       if (!zone) return;
       resetCleaningWeekIfNeeded();
@@ -1580,7 +1638,10 @@ function setupMainEvents() {
       }
 
       if (ass.userName === myName) {
-        const okRemove = confirm("Vuoi rimuovere la tua prenotazione per questa zona?");
+        const okRemove = await uiConfirm(
+          "Vuoi rimuovere la tua prenotazione per questa zona?",
+          "Pulizie"
+        );
         if (!okRemove) return;
         state.group.cleaningAssignments[zone] = null;
         saveState();
@@ -1588,8 +1649,9 @@ function setupMainEvents() {
         return;
       }
 
-      const ok = confirm(
-        `Questa zona è già presa in carico da ${ass.userName}.\nVuoi assegnarla a te?`
+      const ok = await uiConfirm(
+        `Questa zona è già presa in carico da ${ass.userName}.\nVuoi assegnarla a te?`,
+        "Pulizie"
       );
       if (!ok) return;
 
@@ -1625,10 +1687,10 @@ function setupMainEvents() {
   }
 
   if (blackboardSaveBtn && blackboardDialog && blackboardInput) {
-    blackboardSaveBtn.addEventListener("click", () => {
+    blackboardSaveBtn.addEventListener("click", async () => {
       const text = blackboardInput.value.trim();
       if (!text) {
-        alert("Scrivi qualcosa prima di salvare.");
+        await uiAlert("Scrivi qualcosa prima di salvare.", "Lavagna");
         return;
       }
       const now = new Date();
